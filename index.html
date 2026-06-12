@@ -1831,20 +1831,12 @@ function showToast(msg) {
   const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
   document.getElementById('manifest-link').href = URL.createObjectURL(blob);
 
-  // Minimal service worker via blob URL
-  const swCode = `
-    self.addEventListener('install', e => self.skipWaiting());
-    self.addEventListener('activate', e => clients.claim());
-    self.addEventListener('fetch', e => {
-      const url = new URL(e.request.url);
-      if (url.hostname !== location.hostname) return;
-      e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-    });
-  `;
-  const swBlob = new Blob([swCode], { type: 'application/javascript' });
-  const swUrl = URL.createObjectURL(swBlob);
+  // Unregister any old service workers that may interfere
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register(swUrl, { scope: '/' }).catch(() => {});
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      for (const reg of regs) reg.unregister();
+    });
+    navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
   }
 })();
 </script>
