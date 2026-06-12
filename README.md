@@ -4,9 +4,10 @@
 ### Features:
 - Seasons of the same anime in your list are combined into one group.
 - No social features available.
-- The interface is only in Ukrainian.
+> [!IMPORTANT]
+> The interface is only in Ukrainian.
 
 ***
 
 > [!CAUTION]
-> **Important User Notice:** 100% made with Claude AI. Use at your own risk.
+> 100% made with Claude AI. Use at your own risk.
