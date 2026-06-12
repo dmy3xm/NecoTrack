@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NecoTrack</title>
+
+<!-- PWA -->
+<meta name="theme-color" content="#0d0d0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NecoTrack">
+<link rel="apple-touch-icon" href="#" id="apple-icon">
+<link rel="manifest" href="#" id="manifest-link">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
@@ -1704,6 +1712,140 @@ function showToast(msg) {
   }
   // Show auth
   document.getElementById('auth-screen').style.display = 'flex';
+})();
+
+// ── PWA SETUP ──
+(function() {
+  // Generate icon as SVG → PNG via canvas
+  function makeIcon(size) {
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    const grad = ctx.createLinearGradient(0, 0, size, size);
+    grad.addColorStop(0, '#1a1825');
+    grad.addColorStop(1, '#0d0d0f');
+    ctx.fillStyle = grad;
+    const r = size * 0.18;
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.lineTo(size - r, 0);
+    ctx.quadraticCurveTo(size, 0, size, r);
+    ctx.lineTo(size, size - r);
+    ctx.quadraticCurveTo(size, size, size - r, size);
+    ctx.lineTo(r, size);
+    ctx.quadraticCurveTo(0, size, 0, size - r);
+    ctx.lineTo(0, r);
+    ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // Accent glow circle
+    const glow = ctx.createRadialGradient(size*0.5, size*0.42, 0, size*0.5, size*0.42, size*0.38);
+    glow.addColorStop(0, 'rgba(124,106,247,0.25)');
+    glow.addColorStop(1, 'rgba(124,106,247,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, size, size);
+
+    // Cat ears
+    const earW = size * 0.13;
+    const earH = size * 0.16;
+    const earY = size * 0.18;
+    ctx.fillStyle = '#7c6af7';
+    // left ear
+    ctx.beginPath();
+    ctx.moveTo(size*0.26, earY + earH);
+    ctx.lineTo(size*0.26 + earW*0.5, earY);
+    ctx.lineTo(size*0.26 + earW, earY + earH);
+    ctx.closePath();
+    ctx.fill();
+    // right ear
+    ctx.beginPath();
+    ctx.moveTo(size*0.74 - earW, earY + earH);
+    ctx.lineTo(size*0.74 - earW*0.5, earY);
+    ctx.lineTo(size*0.74, earY + earH);
+    ctx.closePath();
+    ctx.fill();
+
+    // Inner ear accent
+    ctx.fillStyle = 'rgba(149,133,255,0.5)';
+    const iEarW = earW * 0.5, iEarH = earH * 0.55;
+    ctx.beginPath();
+    ctx.moveTo(size*0.26 + earW*0.25, earY + earH - iEarH*0.1);
+    ctx.lineTo(size*0.26 + earW*0.5, earY + earH*0.3);
+    ctx.lineTo(size*0.26 + earW*0.75, earY + earH - iEarH*0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(size*0.74 - earW*0.75, earY + earH - iEarH*0.1);
+    ctx.lineTo(size*0.74 - earW*0.5, earY + earH*0.3);
+    ctx.lineTo(size*0.74 - earW*0.25, earY + earH - iEarH*0.1);
+    ctx.closePath();
+    ctx.fill();
+
+    // "NT" text
+    ctx.fillStyle = '#e8e8f0';
+    ctx.font = `700 ${size*0.3}px "Space Grotesk", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // N in dimmer color
+    ctx.fillStyle = '#8888a0';
+    ctx.fillText('N', size * 0.36, size * 0.62);
+    // T in accent
+    ctx.fillStyle = '#7c6af7';
+    ctx.fillText('T', size * 0.64, size * 0.62);
+
+    // Bottom accent line
+    ctx.strokeStyle = '#7c6af7';
+    ctx.lineWidth = size * 0.025;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(size*0.35, size*0.78);
+    ctx.lineTo(size*0.65, size*0.78);
+    ctx.stroke();
+
+    return canvas.toDataURL('image/png');
+  }
+
+  const icon192 = makeIcon(192);
+  const icon512 = makeIcon(512);
+
+  // Set apple touch icon
+  document.getElementById('apple-icon').href = icon512;
+
+  // Inject manifest as blob
+  const manifest = {
+    name: 'NecoTrack',
+    short_name: 'NecoTrack',
+    start_url: 'https://dmy3xm.github.io/',
+    display: 'standalone',
+    background_color: '#0d0d0f',
+    theme_color: '#0d0d0f',
+    orientation: 'portrait',
+    icons: [
+      { src: icon192, sizes: '192x192', type: 'image/png' },
+      { src: icon512, sizes: '512x512', type: 'image/png' }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  document.getElementById('manifest-link').href = URL.createObjectURL(blob);
+
+  // Minimal service worker via blob URL
+  const swCode = `
+    self.addEventListener('install', e => self.skipWaiting());
+    self.addEventListener('activate', e => clients.claim());
+    self.addEventListener('fetch', e => {
+      const url = new URL(e.request.url);
+      if (url.hostname !== location.hostname) return;
+      e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    });
+  `;
+  const swBlob = new Blob([swCode], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(swBlob);
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register(swUrl, { scope: '/' }).catch(() => {});
+  }
 })();
 </script>
 </body>
