@@ -4,41 +4,50 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NecoTrack</title>
-
-<!-- PWA -->
-<meta name="theme-color" content="#0d0d0f">
+<meta name="theme-color" content="#1a1510">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NecoTrack">
 <link rel="apple-touch-icon" href="#" id="apple-icon">
 <link rel="manifest" href="#" id="manifest-link">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
-
   :root {
-    --bg: #0d0d0f;
-    --surface: #16161a;
-    --surface2: #1e1e24;
-    --surface3: #26262e;
-    --border: #2a2a34;
-    --accent: #7c6af7;
-    --accent-dim: rgba(124,106,247,0.15);
-    --accent-hover: #9585ff;
-    --text: #e8e8f0;
-    --text-dim: #8888a0;
-    --text-muted: #55556a;
-    --green: #4ade80;
-    --yellow: #fbbf24;
-    --red: #f87171;
-    --blue: #60a5fa;
-    --radius: 10px;
-    --radius-sm: 6px;
+    /* Warm soft-dark palette */
+    --bg:        #151210;
+    --surface:   #1e1a16;
+    --surface2:  #262018;
+    --surface3:  #302820;
+    --border:    #3a2e24;
+    --border-hi: #4e3d2e;
+
+    /* Accent: warm coral-peach, close to #FFBCAC */
+    --accent:      #f0a898;
+    --accent-dim:  rgba(240,168,152,0.13);
+    --accent-glow: rgba(240,168,152,0.07);
+    --accent-hover:#ffcabc;
+
+    /* Text */
+    --text:       #f0e8e0;
+    --text-dim:   #9e8e82;
+    --text-muted: #5e4e44;
+
+    /* Status colors — all warm-adjusted */
+    --green:  #82d4a0;
+    --yellow: #f0c878;
+    --red:    #e87878;
+    --blue:   #90bcd8;
+
+    --radius:    12px;
+    --radius-sm: 7px;
+    --radius-xs: 4px;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -46,7 +55,7 @@
     line-height: 1.5;
   }
 
-  /* ── AUTH SCREEN ── */
+  /* ── AUTH ── */
   #auth-screen {
     display: flex;
     flex-direction: column;
@@ -54,36 +63,47 @@
     justify-content: center;
     min-height: 100vh;
     padding: 24px;
-    gap: 32px;
+    gap: 28px;
+    background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(240,168,152,0.06) 0%, transparent 70%);
   }
 
   .auth-logo {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 36px;
-    font-weight: 700;
-    letter-spacing: -1px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
     color: var(--text);
   }
   .auth-logo span { color: var(--accent); }
+  .auth-logo small {
+    display: block;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: -4px;
+  }
 
   .auth-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 40px;
-    max-width: 400px;
+    border-radius: 18px;
+    padding: 36px 32px;
+    max-width: 390px;
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
     align-items: center;
     text-align: center;
   }
 
   .auth-card h2 {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 20px;
-    font-weight: 600;
+    font-family: 'Nunito', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
   }
 
   .auth-card p {
@@ -94,16 +114,17 @@
 
   .btn-primary {
     background: var(--accent);
-    color: #fff;
+    color: #1a0e0a;
     border: none;
     padding: 12px 28px;
     border-radius: var(--radius-sm);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Nunito', sans-serif;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 700;
     cursor: pointer;
     transition: background 0.15s, transform 0.1s;
     width: 100%;
+    letter-spacing: 0.2px;
   }
   .btn-primary:hover { background: var(--accent-hover); }
   .btn-primary:active { transform: scale(0.98); }
@@ -112,7 +133,7 @@
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 7px;
   }
   .token-input-wrap label {
     font-size: 12px;
@@ -124,7 +145,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     color: var(--text);
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 13px;
     padding: 10px 14px;
     width: 100%;
@@ -137,9 +158,9 @@
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: 11px;
   }
   .divider::before, .divider::after {
     content: '';
@@ -148,14 +169,15 @@
     background: var(--border);
   }
 
-  /* ── APP LAYOUT ── */
+  /* ── APP ── */
   #app { display: none; flex-direction: column; min-height: 100vh; }
 
+  /* HEADER */
   header {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 0 24px;
-    height: 56px;
+    padding: 0 20px;
+    height: 54px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -165,35 +187,36 @@
   }
 
   .header-logo {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 18px;
-    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
     letter-spacing: -0.5px;
+    color: var(--text);
   }
   .header-logo span { color: var(--accent); }
 
   .header-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
 
   .user-chip {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: 20px;
-    padding: 4px 12px 4px 4px;
+    padding: 3px 11px 3px 3px;
     font-size: 13px;
     font-weight: 500;
     color: var(--text-dim);
   }
 
   .user-avatar {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     object-fit: cover;
     background: var(--surface3);
@@ -205,61 +228,62 @@
     border-radius: var(--radius-sm);
     color: var(--text-dim);
     cursor: pointer;
-    padding: 6px 10px;
+    padding: 5px 10px;
     font-size: 13px;
     transition: color 0.15s, border-color 0.15s;
+    font-family: 'DM Sans', sans-serif;
   }
   .btn-icon:hover { color: var(--text); border-color: var(--accent); }
 
-  /* ── TABS ── */
+  /* TABS */
   .tabs-wrap {
     background: var(--bg);
     border-bottom: 1px solid var(--border);
     overflow-x: auto;
-    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     position: sticky;
-    top: 56px;
+    top: 54px;
     z-index: 90;
   }
   .tabs-wrap::-webkit-scrollbar { display: none; }
 
   .tabs {
     display: flex;
-    gap: 0;
-    padding: 12px 16px 0;
+    padding: 10px 16px 0;
     min-width: max-content;
+    gap: 2px;
   }
 
   .tab {
-    padding: 8px 18px;
+    padding: 7px 16px;
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     border: 1px solid transparent;
     border-bottom: none;
     background: transparent;
-    color: var(--text-dim);
+    color: var(--text-muted);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: color 0.15s, background 0.15s;
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     white-space: nowrap;
+    letter-spacing: 0.1px;
   }
   .tab.active {
     background: var(--surface);
     border-color: var(--border);
     color: var(--text);
   }
-  .tab:not(.active):hover { color: var(--text); }
+  .tab:not(.active):hover { color: var(--text-dim); }
 
-  /* ── CONTROLS ── */
+  /* CONTROLS */
   .controls {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 12px 24px;
+    padding: 10px 20px;
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     flex-wrap: wrap;
   }
@@ -267,30 +291,33 @@
   .search-wrap {
     position: relative;
     flex: 1;
-    min-width: 200px;
-    max-width: 400px;
+    min-width: 180px;
+    max-width: 380px;
   }
   .search-wrap input {
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     color: var(--text);
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 13px;
-    padding: 8px 12px 8px 34px;
+    padding: 7px 12px 7px 32px;
     width: 100%;
     outline: none;
     transition: border-color 0.15s;
   }
+  .search-wrap input::placeholder { color: var(--text-muted); }
   .search-wrap input:focus { border-color: var(--accent); }
+
   .search-icon {
     position: absolute;
     left: 10px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted);
-    font-size: 14px;
+    font-size: 15px;
     pointer-events: none;
+    line-height: 1;
   }
 
   .catalog-dropdown {
@@ -304,7 +331,7 @@
     z-index: 200;
     max-height: 360px;
     overflow-y: auto;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
   }
 
   .catalog-item {
@@ -320,8 +347,8 @@
   .catalog-item:hover { background: var(--surface2); }
 
   .catalog-cover {
-    width: 30px;
-    height: 42px;
+    width: 28px;
+    height: 40px;
     object-fit: cover;
     border-radius: 3px;
     background: var(--surface3);
@@ -335,28 +362,29 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--text);
   }
   .catalog-meta {
     font-size: 11px;
     color: var(--text-muted);
-    margin-top: 2px;
+    margin-top: 1px;
   }
 
   .catalog-add {
     background: var(--accent-dim);
     border: 1px solid var(--accent);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-xs);
     color: var(--accent);
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     padding: 3px 8px;
     cursor: pointer;
     white-space: nowrap;
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     transition: background 0.12s;
     flex-shrink: 0;
   }
-  .catalog-add:hover { background: var(--accent); color: #fff; }
+  .catalog-add:hover { background: var(--accent); color: #1a0e0a; }
   .catalog-add.in-list { background: transparent; border-color: var(--border); color: var(--text-muted); cursor: default; }
 
   .catalog-loading {
@@ -369,7 +397,7 @@
   .search-mode-hint {
     font-size: 10px;
     color: var(--text-muted);
-    padding: 8px 12px 4px;
+    padding: 7px 12px 4px;
     border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
@@ -379,9 +407,9 @@
     background: none;
     border: none;
     color: var(--accent);
-    font-size: 10px;
+    font-size: 11px;
     cursor: pointer;
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     padding: 0;
   }
 
@@ -390,9 +418,9 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     color: var(--text);
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 13px;
-    padding: 8px 12px;
+    padding: 7px 10px;
     outline: none;
     cursor: pointer;
     transition: border-color 0.15s;
@@ -407,27 +435,29 @@
   .toggle-btn {
     background: var(--surface2);
     border: 1px solid var(--border);
-    color: var(--text-dim);
+    color: var(--text-muted);
     font-size: 12px;
-    padding: 7px 10px;
+    font-weight: 600;
+    padding: 6px 10px;
     cursor: pointer;
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     transition: all 0.15s;
   }
   .toggle-btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
   .toggle-btn:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
   .toggle-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
 
-  /* ── CONTENT ── */
+  /* MAIN */
   main {
-    padding: 20px 24px;
+    padding: 18px 20px;
     flex: 1;
   }
 
+  /* STATS */
   .stats-bar {
     display: flex;
-    gap: 16px;
-    margin-bottom: 20px;
+    gap: 10px;
+    margin-bottom: 18px;
     flex-wrap: wrap;
   }
   .stat-chip {
@@ -437,52 +467,48 @@
     padding: 4px 14px;
     font-size: 12px;
     color: var(--text-dim);
+    font-weight: 500;
   }
-  .stat-chip strong { color: var(--text); font-weight: 600; margin-right: 4px; }
+  .stat-chip strong { color: var(--accent); font-weight: 700; margin-right: 4px; }
 
   /* ── LIST ── */
-  .anime-list { display: flex; flex-direction: column; gap: 2px; }
+  .anime-list { display: flex; flex-direction: column; gap: 0; }
 
-  /* Grouped series */
+  /* SERIES GROUP (multi-season) */
   .series-group {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
     margin-bottom: 8px;
-    transition: border-color 0.15s;
+    transition: border-color 0.2s;
   }
-  .series-group:hover { border-color: var(--accent); }
+  .series-group:hover { border-color: var(--border-hi); }
 
   .series-header {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 12px 14px;
+    gap: 12px;
+    padding: 10px 14px;
     cursor: pointer;
     user-select: none;
   }
 
   .series-cover {
-    width: 90px;
-    height: 130px;
+    width: 56px;
+    height: 80px;
     object-fit: cover;
     border-radius: 6px;
     background: var(--surface3);
     flex-shrink: 0;
   }
 
-  .series-info {
-    flex: 1;
-    min-width: 0;
-  }
+  .series-info { flex: 1; min-width: 0; }
 
   .series-title {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 15px;
-    font-weight: 600;
-    white-space: normal;
-    overflow: visible;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
     line-height: 1.3;
     color: var(--text);
   }
@@ -490,8 +516,8 @@
   .series-meta {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 4px;
+    gap: 7px;
+    margin-top: 5px;
     flex-wrap: wrap;
   }
 
@@ -501,11 +527,12 @@
     background: var(--surface3);
     padding: 2px 8px;
     border-radius: 10px;
+    font-weight: 600;
   }
 
   .series-score-avg {
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--yellow);
     display: flex;
     align-items: center;
@@ -514,20 +541,20 @@
 
   .chevron {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: 11px;
     transition: transform 0.2s;
     flex-shrink: 0;
   }
   .series-group.open .chevron { transform: rotate(90deg); }
 
-  /* Single season rows */
   .seasons-list { border-top: 1px solid var(--border); }
 
+  /* SEASON ROW inside group */
   .season-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px 12px 116px;
+    gap: 10px;
+    padding: 8px 14px;
     border-bottom: 1px solid var(--border);
     transition: background 0.12s;
   }
@@ -535,8 +562,8 @@
   .season-row:hover { background: var(--surface2); }
 
   .season-cover {
-    width: 72px;
-    height: 104px;
+    width: 44px;
+    height: 62px;
     object-fit: cover;
     border-radius: 5px;
     background: var(--surface3);
@@ -556,98 +583,28 @@
   .season-submeta {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     margin-top: 3px;
     flex-wrap: wrap;
   }
 
-  .status-badge {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  .status-CURRENT { background: rgba(74,222,128,0.15); color: var(--green); }
-  .status-COMPLETED { background: rgba(96,165,250,0.15); color: var(--blue); }
-  .status-PLANNING { background: rgba(124,106,247,0.15); color: var(--accent); }
-  .status-DROPPED { background: rgba(248,113,113,0.15); color: var(--red); }
-  .status-PAUSED { background: rgba(251,191,36,0.15); color: var(--yellow); }
-
-  .progress-text {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-
-  .season-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-
-  .score-badge {
-    background: var(--surface3);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--yellow);
-    font-size: 12px;
-    font-weight: 700;
-    padding: 3px 8px;
-    min-width: 36px;
-    text-align: center;
-  }
-  .score-badge.no-score { color: var(--text-muted); font-weight: 400; }
-
-  .btn-plus {
-    background: var(--accent-dim);
-    border: 1px solid var(--accent);
-    border-radius: var(--radius-sm);
-    color: var(--accent);
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    width: 30px;
-    height: 30px;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.12s;
-    flex-shrink: 0;
-  }
-  .btn-plus:hover { background: var(--accent); color: #fff; }
-  .btn-plus:active { transform: scale(0.93); }
-
-  .btn-sm {
-    background: var(--surface3);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text-muted);
-    cursor: pointer;
-    font-size: 13px;
-    padding: 4px 8px;
-    font-family: 'Inter', sans-serif;
-    transition: all 0.12s;
-    white-space: nowrap;
-  }
-  .btn-sm:hover { color: var(--text-dim); }
-
-  /* ── STANDALONE (ungrouped) row ── */
+  /* STANDALONE ROW */
   .standalone-row {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 12px 14px;
+    gap: 12px;
+    padding: 10px 14px;
     margin-bottom: 8px;
-    transition: border-color 0.15s;
+    transition: border-color 0.2s;
   }
-  .standalone-row:hover { border-color: var(--accent); }
+  .standalone-row:hover { border-color: var(--border-hi); }
 
   .standalone-cover {
-    width: 90px;
-    height: 130px;
+    width: 56px;
+    height: 80px;
     object-fit: cover;
     border-radius: 6px;
     background: var(--surface3);
@@ -656,47 +613,139 @@
 
   .standalone-info { flex: 1; min-width: 0; }
   .standalone-title {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Nunito', sans-serif;
     font-size: 14px;
-    font-weight: 600;
-    white-space: normal;
+    font-weight: 700;
     line-height: 1.3;
+    color: var(--text);
   }
   .standalone-meta {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     margin-top: 4px;
     flex-wrap: wrap;
   }
+
+  /* STATUS BADGES */
+  .status-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .status-CURRENT   { background: rgba(130,212,160,0.15); color: var(--green); }
+  .status-COMPLETED { background: rgba(144,188,216,0.15); color: var(--blue); }
+  .status-PLANNING  { background: rgba(240,168,152,0.15); color: var(--accent); }
+  .status-DROPPED   { background: rgba(232,120,120,0.15); color: var(--red); }
+  .status-PAUSED    { background: rgba(240,200,120,0.15); color: var(--yellow); }
+
+  .progress-text {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* PROGRESS BAR */
+  .progress-bar-wrap {
+    width: 100%;
+    height: 3px;
+    background: var(--surface3);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s;
+    opacity: 0.7;
+  }
+
+  /* SEASON/STANDALONE ACTIONS */
+  .season-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .score-badge {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    color: var(--yellow);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 7px;
+    min-width: 32px;
+    text-align: center;
+  }
+  .score-badge.no-score { color: var(--text-muted); font-weight: 400; }
+
+  .btn-plus {
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-xs);
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 700;
+    width: 28px;
+    height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.12s;
+    flex-shrink: 0;
+  }
+  .btn-plus:hover { background: var(--accent); color: #1a0e0a; }
+  .btn-plus:active { transform: scale(0.92); }
+
+  .btn-sm {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 8px;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.12s;
+    white-space: nowrap;
+  }
+  .btn-sm:hover { color: var(--text-dim); border-color: var(--border-hi); }
 
   /* ── MODAL ── */
   .modal-overlay {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.7);
+    background: rgba(10,8,6,0.75);
     z-index: 200;
     align-items: center;
     justify-content: center;
     padding: 20px;
+    backdrop-filter: blur(3px);
   }
   .modal-overlay.open { display: flex; }
 
   .modal {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
+    border: 1px solid var(--border-hi);
+    border-radius: 18px;
     width: 100%;
-    max-width: 480px;
+    max-width: 460px;
     max-height: 90vh;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
   }
 
   .modal-header {
-    padding: 20px 20px 16px;
+    padding: 18px 18px 14px;
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: flex-start;
@@ -704,8 +753,8 @@
   }
 
   .modal-cover {
-    width: 52px;
-    height: 72px;
+    width: 48px;
+    height: 68px;
     object-fit: cover;
     border-radius: 6px;
     background: var(--surface3);
@@ -714,147 +763,159 @@
 
   .modal-title-wrap { flex: 1; min-width: 0; }
   .modal-title {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Nunito', sans-serif;
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 800;
     line-height: 1.3;
+    color: var(--text);
   }
   .modal-subtitle {
     font-size: 12px;
     color: var(--text-dim);
-    margin-top: 4px;
+    margin-top: 3px;
   }
 
   .btn-close {
-    background: none;
-    border: none;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50%;
     color: var(--text-dim);
     cursor: pointer;
-    font-size: 18px;
-    padding: 0;
-    line-height: 1;
+    font-size: 14px;
+    width: 26px;
+    height: 26px;
+    display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
+    transition: all 0.12s;
   }
-  .btn-close:hover { color: var(--text); }
+  .btn-close:hover { color: var(--text); border-color: var(--border-hi); }
 
-  .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  .modal-body { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
 
-  .field-group { display: flex; flex-direction: column; gap: 6px; }
-  .field-label { font-size: 12px; color: var(--text-dim); font-weight: 500; }
+  .field-group { display: flex; flex-direction: column; gap: 7px; }
+  .field-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
 
   .score-row {
     display: flex;
-    gap: 6px;
+    gap: 5px;
     flex-wrap: wrap;
   }
 
   .score-btn {
-    width: 38px;
-    height: 38px;
-    border-radius: var(--radius-sm);
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-xs);
     border: 1px solid var(--border);
     background: var(--surface2);
     color: var(--text-dim);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.12s;
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
   }
   .score-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .score-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .score-btn.active { background: var(--accent); border-color: var(--accent); color: #1a0e0a; }
 
   .status-row {
     display: flex;
-    gap: 6px;
+    gap: 5px;
     flex-wrap: wrap;
   }
 
   .status-btn {
-    padding: 6px 12px;
+    padding: 5px 12px;
     border-radius: 20px;
     border: 1px solid var(--border);
     background: var(--surface2);
     color: var(--text-dim);
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.12s;
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
   }
-  .status-btn.active-CURRENT { background: rgba(74,222,128,0.15); border-color: var(--green); color: var(--green); }
-  .status-btn.active-COMPLETED { background: rgba(96,165,250,0.15); border-color: var(--blue); color: var(--blue); }
-  .status-btn.active-PLANNING { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
-  .status-btn.active-DROPPED { background: rgba(248,113,113,0.15); border-color: var(--red); color: var(--red); }
-  .status-btn.active-PAUSED { background: rgba(251,191,36,0.15); border-color: var(--yellow); color: var(--yellow); }
+  .status-btn.active-CURRENT   { background: rgba(130,212,160,0.15); border-color: var(--green); color: var(--green); }
+  .status-btn.active-COMPLETED { background: rgba(144,188,216,0.15); border-color: var(--blue); color: var(--blue); }
+  .status-btn.active-PLANNING  { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .status-btn.active-DROPPED   { background: rgba(232,120,120,0.15); border-color: var(--red); color: var(--red); }
+  .status-btn.active-PAUSED    { background: rgba(240,200,120,0.15); border-color: var(--yellow); color: var(--yellow); }
 
   .progress-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
   }
   .progress-row input[type=number] {
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     color: var(--text);
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 14px;
-    padding: 8px 12px;
-    width: 80px;
+    padding: 7px 10px;
+    width: 76px;
     outline: none;
     text-align: center;
     transition: border-color 0.15s;
   }
   .progress-row input:focus { border-color: var(--accent); }
   .progress-row span { color: var(--text-dim); font-size: 13px; }
+
   .btn-prog {
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text);
+    border-radius: var(--radius-xs);
+    color: var(--text-dim);
     cursor: pointer;
     font-size: 16px;
-    width: 34px;
-    height: 34px;
+    font-weight: 700;
+    width: 32px;
+    height: 32px;
     display: flex; align-items: center; justify-content: center;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, color 0.15s;
   }
-  .btn-prog:hover { border-color: var(--accent); }
+  .btn-prog:hover { border-color: var(--accent); color: var(--accent); }
 
   textarea.notes-input {
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     color: var(--text);
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 13px;
-    padding: 10px 14px;
+    padding: 10px 12px;
     width: 100%;
     resize: vertical;
-    min-height: 80px;
+    min-height: 76px;
     outline: none;
     transition: border-color 0.15s;
   }
   textarea.notes-input:focus { border-color: var(--accent); }
 
   .modal-footer {
-    padding: 16px 20px;
+    padding: 14px 18px;
     border-top: 1px solid var(--border);
     display: flex;
-    gap: 8px;
+    gap: 7px;
     justify-content: flex-end;
   }
 
   .btn-save {
     background: var(--accent);
-    color: #fff;
+    color: #1a0e0a;
     border: none;
-    padding: 9px 20px;
+    padding: 8px 20px;
     border-radius: var(--radius-sm);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Nunito', sans-serif;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 700;
     cursor: pointer;
     transition: background 0.15s;
   }
@@ -864,57 +925,59 @@
     background: var(--surface2);
     border: 1px solid var(--border);
     color: var(--text-dim);
-    padding: 9px 16px;
+    padding: 8px 16px;
     border-radius: var(--radius-sm);
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 13px;
     cursor: pointer;
     transition: border-color 0.15s;
   }
-  .btn-cancel:hover { border-color: var(--accent); }
+  .btn-cancel:hover { border-color: var(--border-hi); }
 
-  /* ── LOADING ── */
+  /* LOADING */
   .loading {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 80px 24px;
-    gap: 16px;
+    gap: 14px;
     color: var(--text-dim);
+    font-size: 13px;
   }
 
   .spinner {
-    width: 36px;
-    height: 36px;
-    border: 3px solid var(--border);
+    width: 32px;
+    height: 32px;
+    border: 2.5px solid var(--border);
     border-top-color: var(--accent);
     border-radius: 50%;
-    animation: spin 0.7s linear infinite;
+    animation: spin 0.75s linear infinite;
   }
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .empty-state {
     text-align: center;
-    padding: 60px 24px;
-    color: var(--text-dim);
+    padding: 56px 24px;
+    color: var(--text-muted);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    font-size: 13px;
   }
-  .empty-state .icon { font-size: 40px; opacity: 0.4; }
+  .empty-state .icon { font-size: 36px; opacity: 0.4; }
 
-  /* ── TOAST ── */
+  /* TOAST */
   #toast {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
+    bottom: 22px;
+    right: 22px;
     background: var(--surface2);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-hi);
     border-radius: var(--radius);
-    padding: 12px 18px;
+    padding: 10px 16px;
     font-size: 13px;
     color: var(--text);
     opacity: 0;
@@ -922,15 +985,15 @@
     transition: all 0.2s;
     z-index: 999;
     pointer-events: none;
+    font-weight: 500;
   }
   #toast.show { opacity: 1; transform: translateY(0); }
 
-  /* ── RESPONSIVE ── */
+  /* RESPONSIVE */
   @media (max-width: 600px) {
-    header, .controls, main { padding-left: 16px; padding-right: 16px; }
-    .tabs { padding-left: 16px; }
-    .season-row { padding-left: 14px; }
-    .auth-card { padding: 28px 20px; }
+    header, .controls, main { padding-left: 14px; padding-right: 14px; }
+    .tabs { padding-left: 12px; }
+    .auth-card { padding: 24px 18px; }
   }
 </style>
 </head>
@@ -938,17 +1001,20 @@
 
 <!-- AUTH -->
 <div id="auth-screen">
-  <div class="auth-logo">Neco<span>Track</span></div>
+  <div class="auth-logo">
+    Neco<span>Track</span>
+    <small>your anime, your way</small>
+  </div>
   <div class="auth-card">
-    <h2>Увійти через AniList</h2>
-    <p>Авторизуйся через AniList щоб завантажити свій список. Токен зберігається тільки в цьому браузері.</p>
-    <button class="btn-primary" onclick="startOAuth()">Авторизація через AniList</button>
-    <div class="divider">або вставити токен вручну</div>
+    <h2>Sign in with AniList</h2>
+    <p>Connect your AniList account to load and sync your list. Your token is stored only in this browser.</p>
+    <button class="btn-primary" onclick="startOAuth()">Continue with AniList</button>
+    <div class="divider">or paste a token manually</div>
     <div class="token-input-wrap">
       <label>Access Token</label>
-      <input type="password" id="manual-token" placeholder="вставити токен...">
+      <input type="password" id="manual-token" placeholder="paste token here…">
     </div>
-    <button class="btn-primary" onclick="loginWithToken()">Увійти</button>
+    <button class="btn-primary" onclick="loginWithToken()">Sign in</button>
   </div>
 </div>
 
@@ -961,38 +1027,38 @@
         <img src="" alt="" class="user-avatar" id="user-avatar">
         <span id="user-name">—</span>
       </div>
-      <button class="btn-icon" onclick="logout()">Вийти</button>
-      <button class="btn-icon" onclick="loadList()" title="Оновити">↻</button>
+      <button class="btn-icon" onclick="loadList()" title="Refresh">↻</button>
+      <button class="btn-icon" onclick="logout()">Sign out</button>
     </div>
   </header>
 
   <div class="tabs-wrap">
     <div class="tabs">
-      <button class="tab active" onclick="setTab('CURRENT',this)">Дивлюся</button>
-      <button class="tab" onclick="setTab('ALL',this)">Всі</button>
-      <button class="tab" onclick="setTab('COMPLETED',this)">Завершено</button>
-      <button class="tab" onclick="setTab('PLANNING',this)">Заплановано</button>
-      <button class="tab" onclick="setTab('PAUSED',this)">Пауза</button>
-      <button class="tab" onclick="setTab('DROPPED',this)">Покинуто</button>
+      <button class="tab active" onclick="setTab('CURRENT',this)">Watching</button>
+      <button class="tab" onclick="setTab('ALL',this)">All</button>
+      <button class="tab" onclick="setTab('COMPLETED',this)">Completed</button>
+      <button class="tab" onclick="setTab('PLANNING',this)">Planning</button>
+      <button class="tab" onclick="setTab('PAUSED',this)">On hold</button>
+      <button class="tab" onclick="setTab('DROPPED',this)">Dropped</button>
     </div>
   </div>
 
   <div class="controls">
     <div class="search-wrap">
       <span class="search-icon">⌕</span>
-      <input type="text" id="search-input" placeholder="Пошук у списку..." oninput="onSearchInput(this.value)">
+      <input type="text" id="search-input" placeholder="Search your list…" oninput="onSearchInput(this.value)">
       <div id="catalog-results" class="catalog-dropdown" style="display:none"></div>
     </div>
     <select class="filter-select" id="sort-select" onchange="renderList()">
-      <option value="title">За назвою</option>
-      <option value="score">За оцінкою</option>
-      <option value="progress">За прогресом</option>
-      <option value="updated">За датою додавання</option>
-      <option value="year">За роком виходу</option>
+      <option value="title">By title</option>
+      <option value="score">By score</option>
+      <option value="progress">By progress</option>
+      <option value="updated">By date added</option>
+      <option value="year">By year</option>
     </select>
     <div class="toggle-group">
-      <button class="toggle-btn active" id="toggle-group" onclick="toggleGrouping(true)">Групувати</button>
-      <button class="toggle-btn" id="toggle-flat" onclick="toggleGrouping(false)">Всі</button>
+      <button class="toggle-btn active" id="toggle-group" onclick="toggleGrouping(true)">Group</button>
+      <button class="toggle-btn" id="toggle-flat" onclick="toggleGrouping(false)">Flat</button>
     </div>
   </div>
 
@@ -1015,38 +1081,36 @@
     </div>
     <div class="modal-body">
       <div class="field-group">
-        <div class="field-label">Статус</div>
+        <div class="field-label">Status</div>
         <div class="status-row">
-          <button class="status-btn" data-status="CURRENT" onclick="setModalStatus('CURRENT')">Дивлюся</button>
-          <button class="status-btn" data-status="COMPLETED" onclick="setModalStatus('COMPLETED')">Переглянуто</button>
-          <button class="status-btn" data-status="PLANNING" onclick="setModalStatus('PLANNING')">Заплановано</button>
-          <button class="status-btn" data-status="PAUSED" onclick="setModalStatus('PAUSED')">Пауза</button>
-          <button class="status-btn" data-status="DROPPED" onclick="setModalStatus('DROPPED')">Покинуто</button>
+          <button class="status-btn" data-status="CURRENT"   onclick="setModalStatus('CURRENT')">Watching</button>
+          <button class="status-btn" data-status="COMPLETED" onclick="setModalStatus('COMPLETED')">Completed</button>
+          <button class="status-btn" data-status="PLANNING"  onclick="setModalStatus('PLANNING')">Planning</button>
+          <button class="status-btn" data-status="PAUSED"    onclick="setModalStatus('PAUSED')">On hold</button>
+          <button class="status-btn" data-status="DROPPED"   onclick="setModalStatus('DROPPED')">Dropped</button>
         </div>
       </div>
       <div class="field-group">
-        <div class="field-label">Оцінка</div>
-        <div class="score-row" id="score-row">
-          <!-- filled by JS -->
-        </div>
+        <div class="field-label">Score</div>
+        <div class="score-row" id="score-row"></div>
       </div>
       <div class="field-group">
-        <div class="field-label">Прогрес</div>
+        <div class="field-label">Progress</div>
         <div class="progress-row">
           <button class="btn-prog" onclick="adjustProgress(-1)">−</button>
           <input type="number" id="modal-progress" min="0" value="0">
-          <span>/ <span id="modal-total">?</span></span>
+          <span>/ <span id="modal-total">?</span> ep</span>
           <button class="btn-prog" onclick="adjustProgress(1)">+</button>
         </div>
       </div>
       <div class="field-group">
-        <div class="field-label">Нотатки</div>
-        <textarea class="notes-input" id="modal-notes" placeholder="Власні нотатки..."></textarea>
+        <div class="field-label">Notes</div>
+        <textarea class="notes-input" id="modal-notes" placeholder="Your personal notes…"></textarea>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal()">Скасувати</button>
-      <button class="btn-save" onclick="saveEntry()">Зберегти</button>
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveEntry()">Save</button>
     </div>
   </div>
 </div>
@@ -1056,7 +1120,6 @@
 <script>
 const CLIENT_ID = '43448';
 const REDIRECT_URI = window.location.href.split('?')[0].split('#')[0];
-const GQL = 'https://api.anthropic.com/v1/messages';
 
 let token = null;
 let currentUser = null;
@@ -1075,7 +1138,7 @@ function startOAuth() {
 
 function loginWithToken() {
   const t = document.getElementById('manual-token').value.trim();
-  if (!t) { showToast('Введи токен'); return; }
+  if (!t) { showToast('Please enter a token'); return; }
   token = t;
   localStorage.setItem('al_token', t);
   initApp();
@@ -1164,13 +1227,11 @@ async function updateEntry(listId, status, score, progress, notes) {
   `, { id: listId, status, score, progress, notes });
 }
 
-// ── GROUPING LOGIC ──
+// ── GROUPING ──
 function buildSeriesGroups(entries) {
-  // Build a map: mediaId -> entry
   const byId = {};
   for (const e of entries) byId[e.media.id] = e;
 
-  // Find connected components via SEQUEL/PREQUEL relations
   const parent = {};
   function find(x) {
     if (parent[x] === undefined) parent[x] = x;
@@ -1199,19 +1260,14 @@ function buildSeriesGroups(entries) {
   }
 
   return Object.values(groups).map(g => {
-    // Sort seasons chronologically
-    g.sort((a, b) => {
-      const ay = a.media.seasonYear || 9999;
-      const by = b.media.seasonYear || 9999;
-      return ay - by;
-    });
+    g.sort((a, b) => (a.media.seasonYear || 9999) - (b.media.seasonYear || 9999));
     return g;
   });
 }
 
-// ── RENDER ──
+// ── RENDER HELPERS ──
 function statusLabel(s) {
-  return {CURRENT:'Дивлюся',COMPLETED:'Переглянуто',PLANNING:'Заплановано',PAUSED:'Пауза',DROPPED:'Покинуто'}[s] || s;
+  return { CURRENT:'Watching', COMPLETED:'Completed', PLANNING:'Planning', PAUSED:'On hold', DROPPED:'Dropped' }[s] || s;
 }
 
 function getTitle(media) {
@@ -1219,27 +1275,19 @@ function getTitle(media) {
 }
 
 function getSeriesTitle(group) {
-  // Use first season's title, stripping season suffix
   const t = getTitle(group[0].media);
   return t.replace(/\s+(Season\s+\d+|S\d+|\d+(st|nd|rd|th)\s+Season)$/i,'').trim() || t;
 }
 
-// ── FUZZY SEARCH ──
 function normalize(s) {
-  return s.toLowerCase()
-    .replace(/[^\w\s]/g, '')        // strip punctuation
-    .replace(/\s+/g, ' ')           // collapse spaces
-    .trim();
+  return s.toLowerCase().replace(/[^\w\s]/g,'').replace(/\s+/g,' ').trim();
 }
 
 function fuzzyMatch(query, target) {
   if (!target) return false;
-  const q = normalize(query);
-  const t = normalize(target);
+  const q = normalize(query), t = normalize(target);
   if (t.includes(q)) return true;
-  // token-based: all query words present in target
-  const qTokens = q.split(' ').filter(Boolean);
-  return qTokens.every(tok => t.includes(tok));
+  return q.split(' ').filter(Boolean).every(tok => t.includes(tok));
 }
 
 // ── CATALOG SEARCH ──
@@ -1247,12 +1295,9 @@ let catalogTimer = null;
 let lastCatalogQuery = '';
 
 function onSearchInput(val) {
-  renderList(); // always filter local list
+  renderList();
   const v = val.trim();
-  if (v.length < 2) {
-    closeCatalog();
-    return;
-  }
+  if (v.length < 2) { closeCatalog(); return; }
   clearTimeout(catalogTimer);
   catalogTimer = setTimeout(() => searchCatalog(v), 400);
 }
@@ -1262,7 +1307,7 @@ async function searchCatalog(query) {
   lastCatalogQuery = query;
   const drop = document.getElementById('catalog-results');
   drop.style.display = 'block';
-  drop.innerHTML = `<div class="catalog-loading">Пошук...</div>`;
+  drop.innerHTML = `<div class="catalog-loading">Searching…</div>`;
   try {
     const data = await gql(`
       query($search: String) {
@@ -1279,16 +1324,13 @@ async function searchCatalog(query) {
       }
     `, { search: query });
     const results = data.Page.media;
-    if (!results.length) {
-      drop.innerHTML = `<div class="catalog-loading">Нічого не знайдено</div>`;
-      return;
-    }
+    if (!results.length) { drop.innerHTML = `<div class="catalog-loading">Nothing found</div>`; return; }
     const listIds = new Set(allEntries.map(e => e.media.id));
-    let html = `<div class="search-mode-hint"><span>Результати з каталогу AniList</span><button onclick="closeCatalog()">✕</button></div>`;
+    let html = `<div class="search-mode-hint"><span>AniList catalog results</span><button onclick="closeCatalog()">✕</button></div>`;
     for (const m of results) {
       const title = m.title.english || m.title.romaji;
       const inList = listIds.has(m.id);
-      const meta = [m.format, m.episodes ? m.episodes+' еп.' : null, m.seasonYear].filter(Boolean).join(' · ');
+      const meta = [m.format, m.episodes ? m.episodes+' ep' : null, m.seasonYear].filter(Boolean).join(' · ');
       html += `
         <div class="catalog-item">
           <img src="${m.coverImage.medium}" class="catalog-cover" loading="lazy">
@@ -1297,15 +1339,15 @@ async function searchCatalog(query) {
             <div class="catalog-meta">${meta}</div>
           </div>
           ${inList
-            ? `<span class="catalog-add in-list">У списку</span>`
-            : `<button class="catalog-add" onclick="addToList(${m.id}, event)">+ Додати</button>`
+            ? `<span class="catalog-add in-list">In list</span>`
+            : `<button class="catalog-add" onclick="addToList(${m.id}, event)">+ Add</button>`
           }
         </div>
       `;
     }
     drop.innerHTML = html;
   } catch(e) {
-    drop.innerHTML = `<div class="catalog-loading">Помилка: ${e.message}</div>`;
+    drop.innerHTML = `<div class="catalog-loading">Error: ${e.message}</div>`;
   }
 }
 
@@ -1318,7 +1360,7 @@ function closeCatalog() {
 
 async function addToList(mediaId, event) {
   const btn = event.target;
-  btn.textContent = '...';
+  btn.textContent = '…';
   btn.disabled = true;
   try {
     const data = await gql(`
@@ -1335,51 +1377,45 @@ async function addToList(mediaId, event) {
     `, { mediaId, status: 'PLANNING' });
     const entry = data.SaveMediaListEntry;
     allEntries.push(entry);
-    btn.textContent = 'У списку';
+    btn.textContent = 'In list';
     btn.classList.add('in-list');
     btn.disabled = true;
-    showToast('Додано до запланованого');
+    showToast('Added to planning');
     renderList();
   } catch(e) {
-    btn.textContent = '+ Додати';
+    btn.textContent = '+ Add';
     btn.disabled = false;
-    showToast('Помилка: ' + e.message);
+    showToast('Error: ' + e.message);
   }
 }
 
-// Close catalog on outside click
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.search-wrap')) closeCatalog();
 });
 
+// ── RENDER ──
 function renderList() {
   const container = document.getElementById('list-container');
   const search = (document.getElementById('search-input').value || '').toLowerCase().trim();
   const sort = document.getElementById('sort-select').value;
 
-  // Filter by current tab
   let filtered = currentTab === 'ALL'
     ? [...allEntries]
     : allEntries.filter(e => e.status === currentTab);
 
-  // Search — fuzzy match
   if (search) {
     filtered = filtered.filter(e => fuzzyMatch(search, getTitle(e.media)) || fuzzyMatch(search, e.media.title.romaji || ''));
   }
 
-  // Stats
   renderStats(filtered);
 
   if (filtered.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="icon">📋</div><div>Список порожній</div></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="icon">📋</div><div>Nothing here yet</div></div>`;
     return;
   }
 
-  if (groupingEnabled) {
-    renderGrouped(filtered, sort, container);
-  } else {
-    renderFlat(filtered, sort, container);
-  }
+  if (groupingEnabled) renderGrouped(filtered, sort, container);
+  else renderFlat(filtered, sort, container);
 }
 
 function renderStats(entries) {
@@ -1389,19 +1425,19 @@ function renderStats(entries) {
   const avgScore = scored.length ? (scored.reduce((s,e)=>s+e.score,0)/scored.length).toFixed(1) : '—';
   const eps = entries.reduce((s,e)=>s+(e.progress||0),0);
   bar.innerHTML = `
-    <div class="stat-chip"><strong>${total}</strong> аніме</div>
-    <div class="stat-chip"><strong>${avgScore}</strong> середня оцінка</div>
-    <div class="stat-chip"><strong>${eps}</strong> серій переглянуто</div>
+    <div class="stat-chip"><strong>${total}</strong> anime</div>
+    <div class="stat-chip"><strong>${avgScore}</strong> avg score</div>
+    <div class="stat-chip"><strong>${eps}</strong> episodes watched</div>
   `;
 }
 
 function sortEntries(entries, sort) {
   return [...entries].sort((a, b) => {
-    if (sort === 'title') return getTitle(a.media).localeCompare(getTitle(b.media));
-    if (sort === 'score') return (b.score||0) - (a.score||0);
+    if (sort === 'title')    return getTitle(a.media).localeCompare(getTitle(b.media));
+    if (sort === 'score')    return (b.score||0) - (a.score||0);
     if (sort === 'progress') return (b.progress||0) - (a.progress||0);
-    if (sort === 'updated') return (b.updatedAt||0) - (a.updatedAt||0);
-    if (sort === 'year') return (b.media.seasonYear||0) - (a.media.seasonYear||0);
+    if (sort === 'updated')  return (b.updatedAt||0) - (a.updatedAt||0);
+    if (sort === 'year')     return (b.media.seasonYear||0) - (a.media.seasonYear||0);
     return 0;
   });
 }
@@ -1409,9 +1445,7 @@ function sortEntries(entries, sort) {
 function renderGrouped(entries, sort, container) {
   const groups = buildSeriesGroups(entries);
 
-  // Sort groups by representative value
   groups.sort((ga, gb) => {
-    const ra = ga[0], rb = gb[0];
     const sort_ = document.getElementById('sort-select').value;
     if (sort_ === 'title') return getSeriesTitle(ga).localeCompare(getSeriesTitle(gb));
     if (sort_ === 'score') {
@@ -1438,11 +1472,11 @@ function renderGrouped(entries, sort, container) {
       html += `
         <div class="series-group" id="${groupId}">
           <div class="series-header" onclick="toggleGroup('${groupId}')">
-            <img src="${cover}" class="series-cover" loading="lazy" data-mid="${rep.media.id}">
+            <img src="${cover}" class="series-cover" loading="lazy">
             <div class="series-info">
               <div class="series-title">${seriesTitle}</div>
               <div class="series-meta">
-                <span class="season-count">${group.length} сезони</span>
+                <span class="season-count">${group.length} seasons</span>
                 ${avgScore ? `<span class="series-score-avg">★ ${avgScore}</span>` : ''}
               </div>
             </div>
@@ -1450,9 +1484,7 @@ function renderGrouped(entries, sort, container) {
           </div>
           <div class="seasons-list" style="display:none">
       `;
-      for (const entry of group) {
-        html += seasonRowHTML(entry);
-      }
+      for (const entry of group) html += seasonRowHTML(entry);
       html += `</div></div>`;
     } else {
       html += standaloneRowHTML(rep);
@@ -1465,33 +1497,37 @@ function renderGrouped(entries, sort, container) {
 function renderFlat(entries, sort, container) {
   const sorted = sortEntries(entries, sort);
   let html = '<div class="anime-list">';
-  for (const entry of sorted) {
-    html += standaloneRowHTML(entry);
-  }
+  for (const entry of sorted) html += standaloneRowHTML(entry);
   html += '</div>';
   container.innerHTML = html;
 }
 
+function progressBar(prog, eps) {
+  if (!eps) return '';
+  const pct = Math.min(100, Math.round((prog / eps) * 100));
+  return `<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>`;
+}
+
 function seasonRowHTML(entry) {
   const title = getTitle(entry.media);
-  const yr = entry.media.seasonYear ? ` · ${entry.media.seasonYear}` : '';
   const eps = entry.media.episodes;
   const prog = entry.progress || 0;
   const cover = entry.media.coverImage.medium;
   const scoreStr = entry.score > 0 ? entry.score : '—';
   const scoreClass = entry.score > 0 ? '' : 'no-score';
   const isDone = eps && prog >= eps;
-  const plusBtn = isDone ? '' : `<button class="btn-plus" onclick='quickPlus(${entry.id})' title="+1 серія">+</button>`;
+  const plusBtn = isDone ? '' : `<button class="btn-plus" onclick='quickPlus(${entry.id})' title="+1 episode">+</button>`;
   return `
     <div class="season-row">
-      <img src="${cover}" class="season-cover" loading="lazy" data-mid="${entry.media.id}">
+      <img src="${cover}" class="season-cover" loading="lazy">
       <div class="season-info">
         <div class="season-title">${title}</div>
         <div class="season-submeta">
           <span class="status-badge status-${entry.status}">${statusLabel(entry.status)}</span>
-          <span class="progress-text">${prog}${eps ? '/'+eps : ''} еп.</span>
+          <span class="progress-text">${prog}${eps ? '/'+eps : ''} ep</span>
           ${entry.notes ? `<span style="font-size:11px;color:var(--text-muted)" title="${entry.notes}">📝</span>` : ''}
         </div>
+        ${progressBar(prog, eps)}
       </div>
       <div class="season-actions">
         <span class="score-badge ${scoreClass}">${scoreStr}</span>
@@ -1510,17 +1546,18 @@ function standaloneRowHTML(entry) {
   const scoreStr = entry.score > 0 ? entry.score : '—';
   const scoreClass = entry.score > 0 ? '' : 'no-score';
   const isDone = eps && prog >= eps;
-  const plusBtn = isDone ? '' : `<button class="btn-plus" onclick='quickPlus(${entry.id})' title="+1 серія">+</button>`;
+  const plusBtn = isDone ? '' : `<button class="btn-plus" onclick='quickPlus(${entry.id})' title="+1 episode">+</button>`;
   return `
     <div class="standalone-row">
-      <img src="${cover}" class="standalone-cover" loading="lazy" data-mid="${entry.media.id}">
+      <img src="${cover}" class="standalone-cover" loading="lazy">
       <div class="standalone-info">
         <div class="standalone-title">${title}</div>
         <div class="standalone-meta">
           <span class="status-badge status-${entry.status}">${statusLabel(entry.status)}</span>
-          <span class="progress-text">${prog}${eps ? '/'+eps : ''} еп.</span>
+          <span class="progress-text">${prog}${eps ? '/'+eps : ''} ep</span>
           ${entry.notes ? `<span style="font-size:11px;color:var(--text-muted)" title="${entry.notes}">📝</span>` : ''}
         </div>
+        ${progressBar(prog, eps)}
       </div>
       <div class="season-actions">
         <span class="score-badge ${scoreClass}">${scoreStr}</span>
@@ -1534,9 +1571,8 @@ function standaloneRowHTML(entry) {
 function toggleGroup(id) {
   const el = document.getElementById(id);
   const sl = el.querySelector('.seasons-list');
-  const isOpen = el.classList.contains('open');
   el.classList.toggle('open');
-  sl.style.display = isOpen ? 'none' : 'block';
+  sl.style.display = el.classList.contains('open') ? 'block' : 'none';
 }
 
 // ── QUICK +1 ──
@@ -1548,17 +1584,16 @@ async function quickPlus(entryId) {
   try {
     await updateEntry(entry.id, entry.status, entry.score, newProg, entry.notes);
     entry.progress = newProg;
-    // auto-complete if reached total
     if (entry.media.episodes && newProg >= entry.media.episodes && entry.status === 'CURRENT') {
       entry.status = 'COMPLETED';
       await updateEntry(entry.id, 'COMPLETED', entry.score, newProg, entry.notes);
-      showToast('Завершено! 🎉');
+      showToast('Completed! 🎉');
     } else {
-      showToast(`${newProg}${entry.media.episodes ? '/'+entry.media.episodes : ''} серій`);
+      showToast(`${newProg}${entry.media.episodes ? '/'+entry.media.episodes : ''} episodes`);
     }
     renderList();
   } catch(e) {
-    showToast('Помилка: ' + e.message);
+    showToast('Error: ' + e.message);
   }
 }
 
@@ -1592,7 +1627,6 @@ function openModal(entryJson) {
   document.getElementById('modal-total').textContent = entry.media.episodes || '?';
   document.getElementById('modal-notes').value = entry.notes || '';
 
-  // Score buttons
   const sr = document.getElementById('score-row');
   sr.innerHTML = '';
   for (let i = 1; i <= 10; i++) {
@@ -1603,7 +1637,6 @@ function openModal(entryJson) {
     sr.appendChild(btn);
   }
 
-  // Status buttons
   document.querySelectorAll('.status-btn').forEach(b => {
     b.className = 'status-btn';
     if (b.dataset.status === modalStatus) b.classList.add('active-' + modalStatus);
@@ -1638,7 +1671,6 @@ async function saveEntry() {
   const notes = document.getElementById('modal-notes').value;
   try {
     await updateEntry(editingEntry.id, modalStatus, modalScore, progress, notes);
-    // Update local state
     const idx = allEntries.findIndex(e => e.id === editingEntry.id);
     if (idx >= 0) {
       allEntries[idx].score = modalScore;
@@ -1648,9 +1680,9 @@ async function saveEntry() {
     }
     closeModal();
     renderList();
-    showToast('Збережено ✓');
+    showToast('Saved ✓');
   } catch(e) {
-    showToast('Помилка: ' + e.message);
+    showToast('Error: ' + e.message);
   }
 }
 
@@ -1659,7 +1691,7 @@ async function initApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('app').style.flexDirection = 'column';
-  document.getElementById('list-container').innerHTML = `<div class="loading"><div class="spinner"></div><div>Завантаження...</div></div>`;
+  document.getElementById('list-container').innerHTML = `<div class="loading"><div class="spinner"></div><div>Loading your list…</div></div>`;
 
   try {
     currentUser = await fetchUser();
@@ -1669,17 +1701,17 @@ async function initApp() {
     }
     await loadList();
   } catch(e) {
-    document.getElementById('list-container').innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><div>Помилка: ${e.message}</div></div>`;
+    document.getElementById('list-container').innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><div>Error: ${e.message}</div></div>`;
   }
 }
 
 async function loadList() {
-  document.getElementById('list-container').innerHTML = `<div class="loading"><div class="spinner"></div><div>Завантаження...</div></div>`;
+  document.getElementById('list-container').innerHTML = `<div class="loading"><div class="spinner"></div><div>Loading your list…</div></div>`;
   try {
     allEntries = await fetchList(currentUser.id);
     renderList();
   } catch(e) {
-    document.getElementById('list-container').innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><div>Помилка завантаження: ${e.message}</div></div>`;
+    document.getElementById('list-container').innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><div>Failed to load: ${e.message}</div></div>`;
   }
 }
 
@@ -1695,7 +1727,6 @@ function showToast(msg) {
 
 // ── STARTUP ──
 (function() {
-  // Check for OAuth token in hash
   const hashToken = parseTokenFromHash();
   if (hashToken) {
     token = hashToken;
@@ -1704,106 +1735,72 @@ function showToast(msg) {
     initApp();
     return;
   }
-  // Check session
   const saved = localStorage.getItem('al_token');
   if (saved) {
     token = saved;
     initApp();
     return;
   }
-  // Show auth
   document.getElementById('auth-screen').style.display = 'flex';
 })();
 
-// ── PWA SETUP ──
+// ── PWA ──
 (function() {
-  // Generate icon as SVG → PNG via canvas
   function makeIcon(size) {
     const canvas = document.createElement('canvas');
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    // Background
     const grad = ctx.createLinearGradient(0, 0, size, size);
-    grad.addColorStop(0, '#1a1825');
-    grad.addColorStop(1, '#0d0d0f');
+    grad.addColorStop(0, '#231a12');
+    grad.addColorStop(1, '#151210');
     ctx.fillStyle = grad;
     const r = size * 0.18;
     ctx.beginPath();
-    ctx.moveTo(r, 0);
-    ctx.lineTo(size - r, 0);
-    ctx.quadraticCurveTo(size, 0, size, r);
-    ctx.lineTo(size, size - r);
-    ctx.quadraticCurveTo(size, size, size - r, size);
-    ctx.lineTo(r, size);
-    ctx.quadraticCurveTo(0, size, 0, size - r);
-    ctx.lineTo(0, r);
-    ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.moveTo(r, 0); ctx.lineTo(size-r, 0);
+    ctx.quadraticCurveTo(size,0,size,r);
+    ctx.lineTo(size,size-r);
+    ctx.quadraticCurveTo(size,size,size-r,size);
+    ctx.lineTo(r,size);
+    ctx.quadraticCurveTo(0,size,0,size-r);
+    ctx.lineTo(0,r);
+    ctx.quadraticCurveTo(0,0,r,0);
     ctx.closePath();
     ctx.fill();
 
-    // Accent glow circle
-    const glow = ctx.createRadialGradient(size*0.5, size*0.42, 0, size*0.5, size*0.42, size*0.38);
-    glow.addColorStop(0, 'rgba(124,106,247,0.25)');
-    glow.addColorStop(1, 'rgba(124,106,247,0)');
+    const glow = ctx.createRadialGradient(size*0.5,size*0.42,0,size*0.5,size*0.42,size*0.38);
+    glow.addColorStop(0,'rgba(240,168,152,0.18)');
+    glow.addColorStop(1,'rgba(240,168,152,0)');
     ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, size, size);
+    ctx.fillRect(0,0,size,size);
 
-    // Cat ears
-    const earW = size * 0.13;
-    const earH = size * 0.16;
-    const earY = size * 0.18;
-    ctx.fillStyle = '#7c6af7';
-    // left ear
+    const earW = size*0.13, earH = size*0.16, earY = size*0.18;
+    ctx.fillStyle = '#f0a898';
     ctx.beginPath();
-    ctx.moveTo(size*0.26, earY + earH);
-    ctx.lineTo(size*0.26 + earW*0.5, earY);
-    ctx.lineTo(size*0.26 + earW, earY + earH);
-    ctx.closePath();
-    ctx.fill();
-    // right ear
+    ctx.moveTo(size*0.26, earY+earH); ctx.lineTo(size*0.26+earW*0.5, earY); ctx.lineTo(size*0.26+earW, earY+earH);
+    ctx.closePath(); ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(size*0.74 - earW, earY + earH);
-    ctx.lineTo(size*0.74 - earW*0.5, earY);
-    ctx.lineTo(size*0.74, earY + earH);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(size*0.74-earW, earY+earH); ctx.lineTo(size*0.74-earW*0.5, earY); ctx.lineTo(size*0.74, earY+earH);
+    ctx.closePath(); ctx.fill();
 
-    // Inner ear accent
-    ctx.fillStyle = 'rgba(149,133,255,0.5)';
-    const iEarW = earW * 0.5, iEarH = earH * 0.55;
+    ctx.fillStyle = 'rgba(255,202,188,0.5)';
     ctx.beginPath();
-    ctx.moveTo(size*0.26 + earW*0.25, earY + earH - iEarH*0.1);
-    ctx.lineTo(size*0.26 + earW*0.5, earY + earH*0.3);
-    ctx.lineTo(size*0.26 + earW*0.75, earY + earH - iEarH*0.1);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(size*0.26+earW*0.25, earY+earH-earH*0.1); ctx.lineTo(size*0.26+earW*0.5, earY+earH*0.3); ctx.lineTo(size*0.26+earW*0.75, earY+earH-earH*0.1);
+    ctx.closePath(); ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(size*0.74 - earW*0.75, earY + earH - iEarH*0.1);
-    ctx.lineTo(size*0.74 - earW*0.5, earY + earH*0.3);
-    ctx.lineTo(size*0.74 - earW*0.25, earY + earH - iEarH*0.1);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(size*0.74-earW*0.75, earY+earH-earH*0.1); ctx.lineTo(size*0.74-earW*0.5, earY+earH*0.3); ctx.lineTo(size*0.74-earW*0.25, earY+earH-earH*0.1);
+    ctx.closePath(); ctx.fill();
 
-    // "NT" text
-    ctx.fillStyle = '#e8e8f0';
-    ctx.font = `700 ${size*0.3}px "Space Grotesk", sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    // N in dimmer color
-    ctx.fillStyle = '#8888a0';
-    ctx.fillText('N', size * 0.36, size * 0.62);
-    // T in accent
-    ctx.fillStyle = '#7c6af7';
-    ctx.fillText('T', size * 0.64, size * 0.62);
+    ctx.font = `800 ${size*0.3}px "Nunito", sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#9e8e82';
+    ctx.fillText('N', size*0.36, size*0.62);
+    ctx.fillStyle = '#f0a898';
+    ctx.fillText('T', size*0.64, size*0.62);
 
-    // Bottom accent line
-    ctx.strokeStyle = '#7c6af7';
-    ctx.lineWidth = size * 0.025;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(size*0.35, size*0.78);
-    ctx.lineTo(size*0.65, size*0.78);
+    ctx.strokeStyle = '#f0a898';
+    ctx.lineWidth = size*0.025; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(size*0.35, size*0.78); ctx.lineTo(size*0.65, size*0.78);
     ctx.stroke();
 
     return canvas.toDataURL('image/png');
@@ -1811,18 +1808,13 @@ function showToast(msg) {
 
   const icon192 = makeIcon(192);
   const icon512 = makeIcon(512);
-
-  // Set apple touch icon
   document.getElementById('apple-icon').href = icon512;
 
-  // Inject manifest as blob
   const manifest = {
-    name: 'NecoTrack',
-    short_name: 'NecoTrack',
-    start_url: 'https://dmy3xm.github.io/',
+    name: 'NecoTrack', short_name: 'NecoTrack',
+    start_url: window.location.pathname,
     display: 'standalone',
-    background_color: '#0d0d0f',
-    theme_color: '#0d0d0f',
+    background_color: '#151210', theme_color: '#1e1a16',
     orientation: 'portrait',
     icons: [
       { src: icon192, sizes: '192x192', type: 'image/png' },
@@ -1832,11 +1824,8 @@ function showToast(msg) {
   const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
   document.getElementById('manifest-link').href = URL.createObjectURL(blob);
 
-  // Unregister any old service workers that may interfere
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      for (const reg of regs) reg.unregister();
-    });
+    navigator.serviceWorker.getRegistrations().then(regs => { for (const r of regs) r.unregister(); });
     navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
   }
 })();
