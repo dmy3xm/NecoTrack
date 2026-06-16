@@ -14,30 +14,30 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    /* Warm soft-dark palette */
-    --bg:        #151210;
-    --surface:   #1e1a16;
-    --surface2:  #262018;
-    --surface3:  #302820;
-    --border:    #3a2e24;
-    --border-hi: #4e3d2e;
+    /* Clean soft-dark palette — neutral, no muddy browns */
+    --bg:        #0f0f11;
+    --surface:   #17171c;
+    --surface2:  #1e1e24;
+    --surface3:  #26262e;
+    --border:    #2e2e38;
+    --border-hi: #42424f;
 
-    /* Accent: warm coral-peach, close to #FFBCAC */
-    --accent:      #f0a898;
-    --accent-dim:  rgba(240,168,152,0.13);
-    --accent-glow: rgba(240,168,152,0.07);
-    --accent-hover:#ffcabc;
+    /* Accent: fresh coral-peach */
+    --accent:      #ffb4a0;
+    --accent-dim:  rgba(255,180,160,0.12);
+    --accent-glow: rgba(255,180,160,0.06);
+    --accent-hover:#ffc9b8;
 
-    /* Text */
-    --text:       #f0e8e0;
-    --text-dim:   #9e8e82;
-    --text-muted: #5e4e44;
+    /* Text — clean whites, no warm tint */
+    --text:       #f2f2f4;
+    --text-dim:   #8a8a9a;
+    --text-muted: #4a4a58;
 
-    /* Status colors — all warm-adjusted */
-    --green:  #82d4a0;
-    --yellow: #f0c878;
-    --red:    #e87878;
-    --blue:   #90bcd8;
+    /* Status colors — vivid, not muted */
+    --green:  #6ee89a;
+    --yellow: #ffd166;
+    --red:    #ff7070;
+    --blue:   #7eb8e8;
 
     --radius:    12px;
     --radius-sm: 7px;
@@ -495,8 +495,8 @@
   }
 
   .series-cover {
-    width: 56px;
-    height: 80px;
+    width: 72px;
+    height: 104px;
     object-fit: cover;
     border-radius: 6px;
     background: var(--surface3);
@@ -562,8 +562,8 @@
   .season-row:hover { background: var(--surface2); }
 
   .season-cover {
-    width: 44px;
-    height: 62px;
+    width: 60px;
+    height: 86px;
     object-fit: cover;
     border-radius: 5px;
     background: var(--surface3);
@@ -603,8 +603,8 @@
   .standalone-row:hover { border-color: var(--border-hi); }
 
   .standalone-cover {
-    width: 56px;
-    height: 80px;
+    width: 72px;
+    height: 104px;
     object-fit: cover;
     border-radius: 6px;
     background: var(--surface3);
