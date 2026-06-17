@@ -8,7 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NecoTrack">
-<link rel="apple-touch-icon" href="#" id="apple-icon">
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png" id="apple-icon">
 <link rel="manifest" href="#" id="manifest-link">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -495,8 +496,8 @@
   }
 
   .series-cover {
-    width: 72px;
-    height: 104px;
+    width: 108px;
+    height: 156px;
     object-fit: cover;
     border-radius: 6px;
     background: var(--surface3);
@@ -562,8 +563,8 @@
   .season-row:hover { background: var(--surface2); }
 
   .season-cover {
-    width: 60px;
-    height: 86px;
+    width: 90px;
+    height: 129px;
     object-fit: cover;
     border-radius: 5px;
     background: var(--surface3);
@@ -603,8 +604,8 @@
   .standalone-row:hover { border-color: var(--border-hi); }
 
   .standalone-cover {
-    width: 72px;
-    height: 104px;
+    width: 108px;
+    height: 156px;
     object-fit: cover;
     border-radius: 6px;
     background: var(--surface3);
@@ -967,7 +968,7 @@
     gap: 8px;
     font-size: 13px;
   }
-  .empty-state .icon { font-size: 36px; opacity: 0.4; }
+  .empty-img { width: 96px; height: 96px; object-fit: contain; opacity: 0.5; }
 
   /* TOAST */
   #toast {
@@ -1002,63 +1003,63 @@
 <!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-logo">
-    Neco<span>Track</span>
-    <small>your anime, your way</small>
+    <img src="logo.png" alt="NecoTrack" style="height:56px; object-fit:contain;">
+    <small>твоє аніме — твої правила</small>
   </div>
   <div class="auth-card">
-    <h2>Sign in with AniList</h2>
-    <p>Connect your AniList account to load and sync your list. Your token is stored only in this browser.</p>
-    <button class="btn-primary" onclick="startOAuth()">Continue with AniList</button>
-    <div class="divider">or paste a token manually</div>
+    <h2>Увійти через AniList</h2>
+    <p>Підключи свій AniList акаунт, щоб завантажити та синхронізувати список. Токен зберігається лише у цьому браузері.</p>
+    <button class="btn-primary" onclick="startOAuth()">Продовжити через AniList</button>
+    <div class="divider">або вставити токен вручну</div>
     <div class="token-input-wrap">
-      <label>Access Token</label>
-      <input type="password" id="manual-token" placeholder="paste token here…">
+      <label>Токен доступу</label>
+      <input type="password" id="manual-token" placeholder="вставте токен сюди…">
     </div>
-    <button class="btn-primary" onclick="loginWithToken()">Sign in</button>
+    <button class="btn-primary" onclick="loginWithToken()">Увійти</button>
   </div>
 </div>
 
 <!-- APP -->
 <div id="app">
   <header>
-    <div class="header-logo">Neco<span>Track</span></div>
+    <div class="header-logo"><img src="logo.png" alt="NecoTrack" style="height:28px; object-fit:contain; display:block;"></div>
     <div class="header-right">
       <div class="user-chip" id="user-chip">
         <img src="" alt="" class="user-avatar" id="user-avatar">
         <span id="user-name">—</span>
       </div>
-      <button class="btn-icon" onclick="loadList()" title="Refresh">↻</button>
-      <button class="btn-icon" onclick="logout()">Sign out</button>
+      <button class="btn-icon" onclick="loadList()" title="Оновити">↻</button>
+      <button class="btn-icon" onclick="logout()">Вийти</button>
     </div>
   </header>
 
   <div class="tabs-wrap">
     <div class="tabs">
-      <button class="tab active" onclick="setTab('CURRENT',this)">Watching</button>
-      <button class="tab" onclick="setTab('ALL',this)">All</button>
-      <button class="tab" onclick="setTab('COMPLETED',this)">Completed</button>
-      <button class="tab" onclick="setTab('PLANNING',this)">Planning</button>
-      <button class="tab" onclick="setTab('PAUSED',this)">On hold</button>
-      <button class="tab" onclick="setTab('DROPPED',this)">Dropped</button>
+      <button class="tab active" data-tab="CURRENT"   onclick="setTab('CURRENT',this)">Дивлюсь</button>
+      <button class="tab"        data-tab="ALL"       onclick="setTab('ALL',this)">Усі</button>
+      <button class="tab"        data-tab="COMPLETED" onclick="setTab('COMPLETED',this)">Переглянуто</button>
+      <button class="tab"        data-tab="PLANNING"  onclick="setTab('PLANNING',this)">Планую</button>
+      <button class="tab"        data-tab="PAUSED"    onclick="setTab('PAUSED',this)">Призупинено</button>
+      <button class="tab"        data-tab="DROPPED"   onclick="setTab('DROPPED',this)">Закинуто</button>
     </div>
   </div>
 
   <div class="controls">
     <div class="search-wrap">
       <span class="search-icon">⌕</span>
-      <input type="text" id="search-input" placeholder="Search your list…" oninput="onSearchInput(this.value)">
+      <input type="text" id="search-input" placeholder="Пошук у списку…" oninput="onSearchInput(this.value)">
       <div id="catalog-results" class="catalog-dropdown" style="display:none"></div>
     </div>
     <select class="filter-select" id="sort-select" onchange="renderList()">
-      <option value="title">By title</option>
-      <option value="score">By score</option>
-      <option value="progress">By progress</option>
-      <option value="updated">By date added</option>
-      <option value="year">By year</option>
+      <option value="title">За назвою</option>
+      <option value="score">За оцінкою</option>
+      <option value="progress">За прогресом</option>
+      <option value="updated">За датою</option>
+      <option value="year">За роком</option>
     </select>
     <div class="toggle-group">
-      <button class="toggle-btn active" id="toggle-group" onclick="toggleGrouping(true)">Group</button>
-      <button class="toggle-btn" id="toggle-flat" onclick="toggleGrouping(false)">Flat</button>
+      <button class="toggle-btn active" id="toggle-group" onclick="toggleGrouping(true)">Групи</button>
+      <button class="toggle-btn" id="toggle-flat" onclick="toggleGrouping(false)">Список</button>
     </div>
   </div>
 
@@ -1081,36 +1082,36 @@
     </div>
     <div class="modal-body">
       <div class="field-group">
-        <div class="field-label">Status</div>
+        <div class="field-label">Статус</div>
         <div class="status-row">
-          <button class="status-btn" data-status="CURRENT"   onclick="setModalStatus('CURRENT')">Watching</button>
-          <button class="status-btn" data-status="COMPLETED" onclick="setModalStatus('COMPLETED')">Completed</button>
-          <button class="status-btn" data-status="PLANNING"  onclick="setModalStatus('PLANNING')">Planning</button>
-          <button class="status-btn" data-status="PAUSED"    onclick="setModalStatus('PAUSED')">On hold</button>
-          <button class="status-btn" data-status="DROPPED"   onclick="setModalStatus('DROPPED')">Dropped</button>
+          <button class="status-btn" data-status="CURRENT"   onclick="setModalStatus('CURRENT')">Дивлюсь</button>
+          <button class="status-btn" data-status="COMPLETED" onclick="setModalStatus('COMPLETED')">Переглянуто</button>
+          <button class="status-btn" data-status="PLANNING"  onclick="setModalStatus('PLANNING')">Планую</button>
+          <button class="status-btn" data-status="PAUSED"    onclick="setModalStatus('PAUSED')">Призупинено</button>
+          <button class="status-btn" data-status="DROPPED"   onclick="setModalStatus('DROPPED')">Закинуто</button>
         </div>
       </div>
       <div class="field-group">
-        <div class="field-label">Score</div>
+        <div class="field-label">Оцінка</div>
         <div class="score-row" id="score-row"></div>
       </div>
       <div class="field-group">
-        <div class="field-label">Progress</div>
+        <div class="field-label">Прогрес</div>
         <div class="progress-row">
           <button class="btn-prog" onclick="adjustProgress(-1)">−</button>
           <input type="number" id="modal-progress" min="0" value="0">
-          <span>/ <span id="modal-total">?</span> ep</span>
+          <span>/ <span id="modal-total">?</span> еп</span>
           <button class="btn-prog" onclick="adjustProgress(1)">+</button>
         </div>
       </div>
       <div class="field-group">
-        <div class="field-label">Notes</div>
-        <textarea class="notes-input" id="modal-notes" placeholder="Your personal notes…"></textarea>
+        <div class="field-label">Нотатки</div>
+        <textarea class="notes-input" id="modal-notes" placeholder="Твої особисті нотатки…"></textarea>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-      <button class="btn-save" onclick="saveEntry()">Save</button>
+      <button class="btn-cancel" onclick="closeModal()">Скасувати</button>
+      <button class="btn-save" onclick="saveEntry()">Зберегти</button>
     </div>
   </div>
 </div>
@@ -1410,7 +1411,7 @@ function renderList() {
   renderStats(filtered);
 
   if (filtered.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="icon">📋</div><div>Nothing here yet</div></div>`;
+    container.innerHTML = `<div class="empty-state"><img src="empty.png" class="empty-img" alt="Порожньо"><div>Тут ще нічого немає</div></div>`;
     return;
   }
 
@@ -1425,9 +1426,9 @@ function renderStats(entries) {
   const avgScore = scored.length ? (scored.reduce((s,e)=>s+e.score,0)/scored.length).toFixed(1) : '—';
   const eps = entries.reduce((s,e)=>s+(e.progress||0),0);
   bar.innerHTML = `
-    <div class="stat-chip"><strong>${total}</strong> anime</div>
-    <div class="stat-chip"><strong>${avgScore}</strong> avg score</div>
-    <div class="stat-chip"><strong>${eps}</strong> episodes watched</div>
+    <div class="stat-chip"><strong>${total}</strong> аніме</div>
+    <div class="stat-chip"><strong>${avgScore}</strong> сер. оцінка</div>
+    <div class="stat-chip"><strong>${eps}</strong> переглянуто епізодів</div>
   `;
 }
 
@@ -1746,79 +1747,15 @@ function showToast(msg) {
 
 // ── PWA ──
 (function() {
-  function makeIcon(size) {
-    const canvas = document.createElement('canvas');
-    canvas.width = size; canvas.height = size;
-    const ctx = canvas.getContext('2d');
-
-    const grad = ctx.createLinearGradient(0, 0, size, size);
-    grad.addColorStop(0, '#231a12');
-    grad.addColorStop(1, '#151210');
-    ctx.fillStyle = grad;
-    const r = size * 0.18;
-    ctx.beginPath();
-    ctx.moveTo(r, 0); ctx.lineTo(size-r, 0);
-    ctx.quadraticCurveTo(size,0,size,r);
-    ctx.lineTo(size,size-r);
-    ctx.quadraticCurveTo(size,size,size-r,size);
-    ctx.lineTo(r,size);
-    ctx.quadraticCurveTo(0,size,0,size-r);
-    ctx.lineTo(0,r);
-    ctx.quadraticCurveTo(0,0,r,0);
-    ctx.closePath();
-    ctx.fill();
-
-    const glow = ctx.createRadialGradient(size*0.5,size*0.42,0,size*0.5,size*0.42,size*0.38);
-    glow.addColorStop(0,'rgba(240,168,152,0.18)');
-    glow.addColorStop(1,'rgba(240,168,152,0)');
-    ctx.fillStyle = glow;
-    ctx.fillRect(0,0,size,size);
-
-    const earW = size*0.13, earH = size*0.16, earY = size*0.18;
-    ctx.fillStyle = '#f0a898';
-    ctx.beginPath();
-    ctx.moveTo(size*0.26, earY+earH); ctx.lineTo(size*0.26+earW*0.5, earY); ctx.lineTo(size*0.26+earW, earY+earH);
-    ctx.closePath(); ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(size*0.74-earW, earY+earH); ctx.lineTo(size*0.74-earW*0.5, earY); ctx.lineTo(size*0.74, earY+earH);
-    ctx.closePath(); ctx.fill();
-
-    ctx.fillStyle = 'rgba(255,202,188,0.5)';
-    ctx.beginPath();
-    ctx.moveTo(size*0.26+earW*0.25, earY+earH-earH*0.1); ctx.lineTo(size*0.26+earW*0.5, earY+earH*0.3); ctx.lineTo(size*0.26+earW*0.75, earY+earH-earH*0.1);
-    ctx.closePath(); ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(size*0.74-earW*0.75, earY+earH-earH*0.1); ctx.lineTo(size*0.74-earW*0.5, earY+earH*0.3); ctx.lineTo(size*0.74-earW*0.25, earY+earH-earH*0.1);
-    ctx.closePath(); ctx.fill();
-
-    ctx.font = `800 ${size*0.3}px "Nunito", sans-serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#9e8e82';
-    ctx.fillText('N', size*0.36, size*0.62);
-    ctx.fillStyle = '#f0a898';
-    ctx.fillText('T', size*0.64, size*0.62);
-
-    ctx.strokeStyle = '#f0a898';
-    ctx.lineWidth = size*0.025; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(size*0.35, size*0.78); ctx.lineTo(size*0.65, size*0.78);
-    ctx.stroke();
-
-    return canvas.toDataURL('image/png');
-  }
-
-  const icon192 = makeIcon(192);
-  const icon512 = makeIcon(512);
-  document.getElementById('apple-icon').href = icon512;
-
   const manifest = {
     name: 'NecoTrack', short_name: 'NecoTrack',
     start_url: window.location.pathname,
     display: 'standalone',
-    background_color: '#151210', theme_color: '#1e1a16',
+    background_color: '#0f0f11', theme_color: '#17171c',
     orientation: 'portrait',
     icons: [
-      { src: icon192, sizes: '192x192', type: 'image/png' },
-      { src: icon512, sizes: '512x512', type: 'image/png' }
+      { src: 'logo.png', sizes: '192x192', type: 'image/png' },
+      { src: 'logo.png', sizes: '512x512', type: 'image/png' }
     ]
   };
   const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
@@ -1826,8 +1763,50 @@ function showToast(msg) {
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(regs => { for (const r of regs) r.unregister(); });
-    navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
   }
+})();
+
+// ── SWIPE BETWEEN TABS ──
+(function() {
+  const TAB_ORDER = ['CURRENT','ALL','COMPLETED','PLANNING','PAUSED','DROPPED'];
+  let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+  const SWIPE_MIN_X = 50;   // px horizontal
+  const SWIPE_MAX_Y = 80;   // px vertical — prevent scroll-swipes
+  const SWIPE_MAX_MS = 400; // ms
+
+  document.addEventListener('touchstart', e => {
+    // ignore if touch starts inside modal or scrollable catalog
+    if (e.target.closest('#edit-modal') || e.target.closest('.catalog-dropdown') || e.target.closest('.tabs-wrap')) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (!touchStartTime) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    const dt = Date.now() - touchStartTime;
+    touchStartTime = 0;
+
+    if (Math.abs(dx) < SWIPE_MIN_X) return;
+    if (Math.abs(dy) > SWIPE_MAX_Y) return;
+    if (dt > SWIPE_MAX_MS) return;
+
+    const idx = TAB_ORDER.indexOf(currentTab);
+    let nextIdx;
+    if (dx < 0) nextIdx = Math.min(idx + 1, TAB_ORDER.length - 1); // swipe left → next
+    else         nextIdx = Math.max(idx - 1, 0);                    // swipe right → prev
+    if (nextIdx === idx) return;
+
+    const nextTab = TAB_ORDER[nextIdx];
+    const btn = document.querySelector(`.tab[data-tab="${nextTab}"]`);
+    if (btn) {
+      setTab(nextTab, btn);
+      // scroll tab into view
+      btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, { passive: true });
 })();
 </script>
 </body>
