@@ -1,5 +1,6 @@
 # NecoTrack
 ![NecotTack icon](logo.png)
+
 [NecoTrack](https://dmy3xm.github.io/NecoTrack/) is a web client for AniList made for personal use.
 
 ### Features:
