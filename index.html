@@ -178,7 +178,7 @@
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     padding: 0 20px;
-    height: 54px;
+    height: 68px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -244,7 +244,7 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     position: sticky;
-    top: 54px;
+    top: 68px;
     z-index: 90;
   }
   .tabs-wrap::-webkit-scrollbar { display: none; }
@@ -1022,7 +1022,7 @@
 <!-- APP -->
 <div id="app">
   <header>
-    <div class="header-logo"><img src="logo.png" alt="NecoTrack" style="height:28px; object-fit:contain; display:block;"></div>
+    <div class="header-logo"><img src="logo.png" alt="NecoTrack" style="height:56px; object-fit:contain; display:block;"></div>
     <div class="header-right">
       <div class="user-chip" id="user-chip">
         <img src="" alt="" class="user-avatar" id="user-avatar">
@@ -1464,7 +1464,7 @@ function renderGrouped(entries, sort, container) {
     const isMulti = group.length > 1;
     const rep = group[0];
     const seriesTitle = getSeriesTitle(group);
-    const cover = rep.media.coverImage.medium;
+    const cover = rep.media.coverImage.large || rep.media.coverImage.medium;
     const scored = group.filter(e=>e.score>0);
     const avgScore = scored.length ? (scored.reduce((s,e)=>s+e.score,0)/scored.length).toFixed(1) : null;
     const groupId = 'g_' + rep.media.id;
@@ -1513,7 +1513,7 @@ function seasonRowHTML(entry) {
   const title = getTitle(entry.media);
   const eps = entry.media.episodes;
   const prog = entry.progress || 0;
-  const cover = entry.media.coverImage.medium;
+  const cover = entry.media.coverImage.large || entry.media.coverImage.medium;
   const scoreStr = entry.score > 0 ? entry.score : '—';
   const scoreClass = entry.score > 0 ? '' : 'no-score';
   const isDone = eps && prog >= eps;
@@ -1543,7 +1543,7 @@ function standaloneRowHTML(entry) {
   const title = getTitle(entry.media);
   const eps = entry.media.episodes;
   const prog = entry.progress || 0;
-  const cover = entry.media.coverImage.medium;
+  const cover = entry.media.coverImage.large || entry.media.coverImage.medium;
   const scoreStr = entry.score > 0 ? entry.score : '—';
   const scoreClass = entry.score > 0 ? '' : 'no-score';
   const isDone = eps && prog >= eps;
