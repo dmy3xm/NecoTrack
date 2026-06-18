@@ -25,6 +25,7 @@ const T = {
   seasons: 'seasons', plusEpisode: '+1 episode', loading: 'Завантаження…',
   // info modal
   related: 'Пов\'язані', inList: 'У списку', showMore: 'Показати більше', showLess: 'Згорнути',
+  anilistLink: 'Відкрити на AniList ↗', addPrompt: 'Додати до списку:', edit: 'Редагувати', addedToList: 'Додано',
   // catalog search
   searching: 'Searching…', nothingFound: 'Nothing found',
   catalogResults: 'AniList catalog results', catalogInList: 'In list', catalogAdd: '+ Add',

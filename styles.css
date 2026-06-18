@@ -1017,6 +1017,19 @@
     padding: 3px 9px;
   }
 
+  .info-link {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px 11px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .info-link:hover { border-color: var(--accent); background: var(--accent-dim); }
+
   .genre-chip {
     background: var(--accent-dim);
     border-radius: 20px;
@@ -1066,10 +1079,10 @@
     gap: 10px;
     padding: 6px 0;
     border-bottom: 1px solid var(--border);
+    cursor: pointer;
   }
   .related-item:last-child { border-bottom: none; }
-  .related-item.in-list { cursor: pointer; }
-  .related-item.in-list:hover { background: var(--surface2); border-radius: var(--radius-xs); padding-left: 4px; }
+  .related-item:hover { background: var(--surface2); border-radius: var(--radius-xs); padding-left: 4px; }
 
   .related-thumb {
     width: 38px;

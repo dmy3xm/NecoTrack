@@ -220,16 +220,16 @@ async function searchCatalog(query) {
       const inList = listIds.has(m.id);
       const meta = [m.format, m.episodes ? m.episodes+' '+T.epShort : null, m.seasonYear].filter(Boolean).join(' · ');
       html += `
-        <div class="catalog-item">
+        <div class="catalog-item" style="cursor:pointer" onclick="openInfoModal(${m.id})">
           <img src="${m.coverImage.medium}" class="catalog-cover" loading="lazy">
           <div class="catalog-info">
             <div class="catalog-title">${title}</div>
             <div class="catalog-meta">${meta}</div>
           </div>
-          ${inList
+          <span onclick="event.stopPropagation()">${inList
             ? `<span class="catalog-add in-list">${T.catalogInList}</span>`
             : `<button class="catalog-add" onclick="addToList(${m.id}, event)">${T.catalogAdd}</button>`
-          }
+          }</span>
         </div>
       `;
     }
@@ -246,33 +246,51 @@ function closeCatalog() {
   drop.innerHTML = '';
 }
 
+// Core add: creates a list entry with the given status and updates local state.
+async function addEntry(mediaId, status) {
+  const data = await gql(`
+    mutation($mediaId: Int, $status: MediaListStatus) {
+      SaveMediaListEntry(mediaId: $mediaId, status: $status) {
+        id status score progress notes updatedAt
+        media {
+          id title { romaji english } coverImage { medium large }
+          episodes season seasonYear
+          relations { edges { relationType(version: 2) node { id type } } }
+        }
+      }
+    }
+  `, { mediaId, status });
+  const entry = data.SaveMediaListEntry;
+  allEntries.push(entry);
+  renderList();
+  return entry;
+}
+
+// Catalog quick-add (→ Planning), with button feedback.
 async function addToList(mediaId, event) {
   const btn = event.target;
   btn.textContent = '…';
   btn.disabled = true;
   try {
-    const data = await gql(`
-      mutation($mediaId: Int, $status: MediaListStatus) {
-        SaveMediaListEntry(mediaId: $mediaId, status: $status) {
-          id status score progress notes updatedAt
-          media {
-            id title { romaji english } coverImage { medium large }
-            episodes season seasonYear
-            relations { edges { relationType(version: 2) node { id type } } }
-          }
-        }
-      }
-    `, { mediaId, status: 'PLANNING' });
-    const entry = data.SaveMediaListEntry;
-    allEntries.push(entry);
+    await addEntry(mediaId, 'PLANNING');
     btn.textContent = T.catalogInList;
     btn.classList.add('in-list');
     btn.disabled = true;
     showToast(T.added);
-    renderList();
   } catch(e) {
     btn.textContent = T.catalogAdd;
     btn.disabled = false;
+    showToast(T.errPrefix + e.message);
+  }
+}
+
+// Add from the info modal with a chosen status, then refresh the modal controls.
+async function addFromInfo(mediaId, status) {
+  try {
+    await addEntry(mediaId, status);
+    showToast(T.addedToList);
+    if (mediaCache[mediaId]) renderInfoModal(mediaCache[mediaId]);
+  } catch(e) {
     showToast(T.errPrefix + e.message);
   }
 }
@@ -360,7 +378,7 @@ function renderGrouped(entries, sort, container) {
       html += `
         <div class="series-group" id="${groupId}">
           <div class="series-header" onclick="toggleGroup('${groupId}')">
-            <img src="${cover}" class="series-cover" loading="lazy">
+            <img src="${cover}" class="series-cover" loading="lazy" style="cursor:pointer" onclick="event.stopPropagation(); openInfoModal(${rep.media.id})">
             <div class="series-info">
               <div class="series-title">${seriesTitle}</div>
               <div class="series-meta">
@@ -403,10 +421,10 @@ function rowHTML(entry, variant) {
   const scored = entry.score > 0, isDone = eps && prog >= eps;
   const metaClass = variant === 'season' ? 'season-submeta' : 'standalone-meta';
   return `
-    <div class="${variant}-row">
-      <img src="${cover}" class="${variant}-cover" loading="lazy" style="cursor:pointer" onclick="openInfoModal(${m.id})">
+    <div class="${variant}-row" style="cursor:pointer" onclick="openInfoModal(${m.id})">
+      <img src="${cover}" class="${variant}-cover" loading="lazy">
       <div class="${variant}-info">
-        <div class="${variant}-title" style="cursor:pointer" onclick="openInfoModal(${m.id})">${getTitle(m)}</div>
+        <div class="${variant}-title">${getTitle(m)}</div>
         <div class="${metaClass}">
           <span class="status-badge status-${entry.status}">${T.status[entry.status] || entry.status}</span>
           <span class="progress-text">${prog}${eps ? '/'+eps : ''} ${T.epShort}</span>
@@ -414,7 +432,7 @@ function rowHTML(entry, variant) {
         </div>
         ${progressBar(prog, eps)}
       </div>
-      <div class="season-actions">
+      <div class="season-actions" onclick="event.stopPropagation()">
         <span class="score-badge ${scored ? '' : 'no-score'}">${scored ? entry.score : '—'}</span>
         ${isDone ? '' : `<button class="btn-plus" onclick='quickPlus(${entry.id})' title="${T.plusEpisode}">+</button>`}
         <button class="btn-sm btn-edit" onclick='openModal(${JSON.stringify(entry).replace(/'/g,"&#39;")})'>✎</button>
@@ -615,6 +633,25 @@ function renderInfoModal(media) {
     ? `<span class="status-badge status-${media.status}">${T.mediaStatus[media.status] || media.status}</span>`
     : '';
 
+  // List controls: pick a status to add, or edit if already in the list.
+  const entry = allEntries.find(e => e.media.id === media.id);
+  let controlsHtml;
+  if (entry) {
+    controlsHtml = `<div class="field-group">
+      <div class="field-label">${T.inList}: ${T.status[entry.status] || entry.status}</div>
+      <div class="status-row"><button class="status-btn" onclick="closeInfoModal(); openModal(allEntries.find(e=>e.media.id===${media.id}))">${T.edit}</button></div>
+    </div>`;
+  } else {
+    const stBtns = Object.keys(T.status).map(s =>
+      `<button class="status-btn" onclick="addFromInfo(${media.id}, '${s}')">${T.status[s]}</button>`
+    ).join('');
+    controlsHtml = `<div class="field-group">
+      <div class="field-label">${T.addPrompt}</div>
+      <div class="status-row">${stBtns}</div>
+    </div>`;
+  }
+  const anilistLink = `<a class="info-link" href="https://anilist.co/anime/${media.id}" target="_blank" rel="noopener">${T.anilistLink}</a>`;
+
   const descId = 'info-desc-' + media.id;
   const descHtml = media.description
     ? `<div class="info-desc" id="${descId}">${media.description}</div>
@@ -628,11 +665,8 @@ function renderInfoModal(media) {
       const rTitle = rMedia.title.english || rMedia.title.romaji;
       const inList = listIds.has(rMedia.id);
       const badge = inList ? `<span class="related-in-list-badge">${T.inList}</span>` : '';
-      const clickAttr = inList
-        ? `onclick="closeInfoModal(); openModal(allEntries.find(e=>e.media.id===${rMedia.id}))"`
-        : '';
       return `
-        <div class="related-item${inList ? ' in-list' : ''}" ${clickAttr}>
+        <div class="related-item" style="cursor:pointer" onclick="openInfoModal(${rMedia.id})">
           <img src="${rMedia.coverImage.medium}" class="related-thumb" loading="lazy">
           <div class="related-info">
             <div class="related-name">${rTitle}</div>
@@ -652,8 +686,10 @@ function renderInfoModal(media) {
     <div class="info-meta-row">
       ${statusBadge}
       <span class="info-score">${scoreStr}</span>
+      ${anilistLink}
       ${genres}
     </div>
+    ${controlsHtml}
     ${descHtml}
     ${relatedHtml}
   `;
