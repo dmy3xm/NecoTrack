@@ -1015,6 +1015,18 @@
     font-size: 13px;
     font-weight: 700;
     padding: 3px 9px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+  }
+  .score-label {
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-top: 2px;
   }
 
   .info-link {
@@ -1118,9 +1130,57 @@
     flex-shrink: 0;
   }
 
+  /* SCORE DISTRIBUTION GRAPH */
+  .score-dist {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 60px;
+    padding-bottom: 18px;
+  }
+  .dist-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    cursor: default;
+  }
+  .dist-bar {
+    width: 100%;
+    min-height: 2px;
+    background: var(--accent);
+    border-radius: 2px 2px 0 0;
+    transition: opacity 0.15s;
+  }
+  .dist-bar-wrap:hover .dist-bar { opacity: 0.6; }
+  .dist-tick {
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-top: 3px;
+    line-height: 1;
+  }
+
+  /* INFO MODAL COLUMNS (tablet/desktop via @media below) */
+  .info-col-left, .info-col-right { display: block; }
+  .info-col-left { margin-bottom: 4px; }
+
   /* RESPONSIVE */
   @media (max-width: 600px) {
     header, .controls, main { padding-left: 14px; padding-right: 14px; }
     .tabs { padding-left: 12px; }
     .auth-card { padding: 24px 18px; }
+  }
+
+  @media (min-width: 650px) {
+    #info-modal .modal { max-width: 800px; }
+    #info-body {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    .info-cover-lg { max-height: 320px; border-radius: var(--radius); }
+    .info-col-left { margin-bottom: 0; }
   }

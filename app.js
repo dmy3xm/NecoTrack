@@ -587,7 +587,7 @@ async function openInfoModal(mediaId) {
 
   try {
     let media = mediaCache[mediaId];
-    if (!media) {
+    if (!media || !media.stats) {
       const data = await gql(`
         query($id: Int) {
           Media(id: $id) {
@@ -598,6 +598,7 @@ async function openInfoModal(mediaId) {
             startDate { year }
             averageScore genres
             description(asHtml: false)
+            stats { scoreDistribution { score count } }
             relations {
               edges {
                 relationType(version: 2)
@@ -616,6 +617,19 @@ async function openInfoModal(mediaId) {
   }
 }
 
+function scoreDistGraph(dist) {
+  if (!dist || !dist.length) return '';
+  const max = Math.max(...dist.map(d => d.count));
+  const bars = dist.map(d => {
+    const h = max ? Math.round((d.count / max) * 100) : 0;
+    return `<div class="dist-bar-wrap" title="${d.score / 10}: ${d.count}">
+      <div class="dist-bar" style="height:${h}%"></div>
+      <div class="dist-tick">${d.score / 10}</div>
+    </div>`;
+  }).join('');
+  return `<div class="score-dist">${bars}</div>`;
+}
+
 function renderInfoModal(media) {
   const title = media.title.english || media.title.romaji;
   $('info-title').textContent = title;
@@ -626,15 +640,21 @@ function renderInfoModal(media) {
 
   const listIds = new Set(allEntries.map(e => e.media.id));
   const animeRelations = (media.relations?.edges || []).filter(e => e.node.type === 'ANIME');
+  const entry = allEntries.find(e => e.media.id === media.id);
 
   const genres = (media.genres || []).map(g => `<span class="genre-chip">${g}</span>`).join('');
-  const scoreStr = media.averageScore ? `★ ${(media.averageScore / 10).toFixed(1)}` : '—';
   const statusBadge = media.status
     ? `<span class="status-badge status-${media.status}">${T.mediaStatus[media.status] || media.status}</span>`
     : '';
 
+  const communityScoreHtml = media.averageScore
+    ? `<span class="info-score"><span>★ ${(media.averageScore / 10).toFixed(1)}</span><span class="score-label">${T.communityScore}</span></span>`
+    : '';
+  const myScoreHtml = (entry && entry.score > 0)
+    ? `<span class="info-score"><span>★ ${entry.score}</span><span class="score-label">${T.myScore}</span></span>`
+    : '';
+
   // List controls: pick a status to add, or edit if already in the list.
-  const entry = allEntries.find(e => e.media.id === media.id);
   let controlsHtml;
   if (entry) {
     controlsHtml = `<div class="field-group">
@@ -682,16 +702,22 @@ function renderInfoModal(media) {
   }
 
   $('info-body').innerHTML = `
-    <img src="${media.coverImage.large || media.coverImage.medium}" class="info-cover-lg" loading="lazy">
-    <div class="info-meta-row">
-      ${statusBadge}
-      <span class="info-score">${scoreStr}</span>
+    <div class="info-col-left">
+      <img src="${media.coverImage.large || media.coverImage.medium}" class="info-cover-lg" loading="lazy">
       ${anilistLink}
-      ${genres}
     </div>
-    ${controlsHtml}
-    ${descHtml}
-    ${relatedHtml}
+    <div class="info-col-right">
+      <div class="info-meta-row">
+        ${statusBadge}
+        ${communityScoreHtml}
+        ${myScoreHtml}
+        ${genres}
+      </div>
+      ${scoreDistGraph(media.stats?.scoreDistribution)}
+      ${controlsHtml}
+      ${descHtml}
+      ${relatedHtml}
+    </div>
   `;
 }
 
