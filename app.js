@@ -853,3 +853,10 @@ function showToast(msg) {
     }
   }, { passive: true });
 })();
+
+// ── DISMISS ON OUTSIDE CLICK ──
+$('edit-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+$('info-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeInfoModal(); });
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) $('catalog-results').style.display = 'none';
+});
