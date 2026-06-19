@@ -598,7 +598,7 @@ async function openInfoModal(mediaId) {
             startDate { year }
             averageScore genres
             description(asHtml: false)
-            stats { scoreDistribution { score count } }
+            stats { scoreDistribution { score amount } }
             relations {
               edges {
                 relationType(version: 2)
@@ -619,10 +619,10 @@ async function openInfoModal(mediaId) {
 
 function scoreDistGraph(dist) {
   if (!dist || !dist.length) return '';
-  const max = Math.max(...dist.map(d => d.count));
+  const max = Math.max(...dist.map(d => d.amount));
   const bars = dist.map(d => {
-    const h = max ? Math.round((d.count / max) * 100) : 0;
-    return `<div class="dist-bar-wrap" title="${d.score / 10}: ${d.count}">
+    const h = max ? Math.round((d.amount / max) * 100) : 0;
+    return `<div class="dist-bar-wrap" title="${d.score / 10}: ${d.amount}">
       <div class="dist-bar" style="height:${h}%"></div>
       <div class="dist-tick">${d.score / 10}</div>
     </div>`;
