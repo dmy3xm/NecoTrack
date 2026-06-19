@@ -455,8 +455,10 @@ async function quickPlus(entryId) {
   const total = entry.media.episodes || 99999;
   const newProg = Math.min((entry.progress || 0) + 1, total);
   try {
-    await updateEntry(entry.id, entry.status, entry.score, newProg, entry.notes);
+    const newStatus = ['PLANNING', 'PAUSED', 'DROPPED'].includes(entry.status) ? 'CURRENT' : entry.status;
+    await updateEntry(entry.id, newStatus, entry.score, newProg, entry.notes);
     entry.progress = newProg;
+    entry.status = newStatus;
     if (entry.media.episodes && newProg >= entry.media.episodes && entry.status === 'CURRENT') {
       entry.status = 'COMPLETED';
       await updateEntry(entry.id, 'COMPLETED', entry.score, newProg, entry.notes);
