@@ -729,6 +729,25 @@
     box-shadow: 0 24px 60px rgba(0,0,0,0.6);
   }
 
+  /* Minimal scroll indicator: a small accent pill, no track, no arrows. */
+  .modal::-webkit-scrollbar { width: 4px; }
+  /* Inset by the modal's 18px corner radius — scrollbars aren't clipped to
+     border-radius, so without this the bar runs past the rounded corner. */
+  .modal::-webkit-scrollbar-track { background: transparent; margin: 18px 0; }
+  .modal::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 999px;
+    min-height: 26px;
+  }
+  /* Firefox only. Setting scrollbar-width in Chrome would override the rules
+     above, widening the bar to 10px and squaring off the thumb. */
+  @supports not selector(::-webkit-scrollbar) {
+    .modal {
+      scrollbar-width: thin;
+      scrollbar-color: var(--accent) transparent;
+    }
+  }
+
   .modal-header {
     padding: 18px 18px 14px;
     border-bottom: 1px solid var(--border);
@@ -1340,7 +1359,7 @@
     #info-modal .modal { max-width: 800px; }
     #info-body {
       display: grid;
-      grid-template-columns: 220px 1fr;
+      grid-template-columns: 220px minmax(0, 1fr);
       gap: 20px;
       align-items: start;
     }
@@ -1355,7 +1374,7 @@
   @media (max-width: 649px) {
     #info-body {
       display: grid;
-      grid-template-columns: 130px 1fr;
+      grid-template-columns: 130px minmax(0, 1fr);
       gap: 16px 14px;
       align-items: start;
     }
