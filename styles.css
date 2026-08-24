@@ -466,6 +466,16 @@
     flex: 1;
   }
 
+  /* On desktop the list scrolls inside <main> rather than the page scrolling.
+     Two reasons: the header then spans the full window width instead of
+     stopping short at the scrollbar gutter, and the scrollbar starts at the
+     top of the scrollable region instead of behind the sticky header.
+     Touch is left alone — phones keep normal page scrolling. */
+  @media (hover: hover) and (pointer: fine) {
+    #app { height: 100dvh; overflow: hidden; }
+    main { overflow-y: auto; min-height: 0; }
+  }
+
   /* STATS */
   .stats-bar {
     display: flex;
