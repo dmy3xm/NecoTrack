@@ -1347,3 +1347,33 @@
     .info-cover-lg { max-height: 320px; border-radius: var(--radius); }
     .info-col-left { margin-bottom: 0; }
   }
+
+  /* Phone: uncropped poster on the left, the compact chips beside it, and
+     everything wide (graph, description, related) full width underneath.
+     display: contents flattens the two desktop columns into this grid so the
+     desktop layout above stays untouched. */
+  @media (max-width: 649px) {
+    #info-body {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 16px 14px;
+      align-items: start;
+    }
+    .info-col-left, .info-col-right { display: contents; }
+    .info-col-left > *, .info-col-right > * { grid-column: 1 / -1; }
+    .info-col-left > .info-cover-lg {
+      grid-column: 1;
+      grid-row: 1;
+      max-height: none;
+      aspect-ratio: 2 / 3;
+      border-radius: var(--radius);
+    }
+    .info-col-right > .info-meta-row {
+      grid-column: 2;
+      grid-row: 1;
+      margin: 0;
+      align-items: flex-start;
+      align-content: flex-start;
+    }
+    .info-col-left > .info-link { order: 1; justify-self: start; }
+  }

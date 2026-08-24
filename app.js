@@ -628,7 +628,7 @@ async function openInfoModal(mediaId) {
           Media(id: $id) {
             id
             title { romaji english }
-            coverImage { large medium }
+            coverImage { large medium extraLarge }
             format status
             startDate { year }
             averageScore genres
@@ -704,6 +704,11 @@ function renderInfoModal(media) {
       <div class="status-row">${stBtns}</div>
     </div>`;
   }
+  // Let the browser pick: `large` is only 1x for the 220px desktop column.
+  const cx = media.coverImage;
+  const coverSrc = cx.large || cx.medium;
+  const coverSet = [cx.large && `${cx.large} 230w`, cx.extraLarge && `${cx.extraLarge} 460w`].filter(Boolean).join(', ');
+
   const anilistLink = `<a class="info-link" href="https://anilist.co/anime/${media.id}" target="_blank" rel="noopener">${T.anilistLink}</a>`;
 
   const descId = 'info-desc-' + media.id;
@@ -737,7 +742,7 @@ function renderInfoModal(media) {
 
   $('info-body').innerHTML = `
     <div class="info-col-left">
-      <img src="${media.coverImage.large || media.coverImage.medium}" class="info-cover-lg" loading="lazy">
+      <img src="${coverSrc}" srcset="${coverSet}" sizes="(min-width: 650px) 220px, 130px" class="info-cover-lg" loading="lazy">
       ${anilistLink}
     </div>
     <div class="info-col-right">
