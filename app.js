@@ -752,7 +752,7 @@ async function maybeSuggestSequel(entry) {
       query($ids: [Int]) {
         Page(perPage: 10) {
           media(id_in: $ids, type: ANIME) {
-            id title { romaji english } coverImage { medium }
+            id title { romaji english } coverImage { medium large }
             format episodes status startDate { year }
           }
         }
@@ -767,26 +767,38 @@ async function maybeSuggestSequel(entry) {
 
 function renderSequelModal(sourceTitle, list) {
   $('sequel-subtitle').textContent = T.sequelDesc(sourceTitle);
-  $('sequel-body').innerHTML = list.map(m => {
+  const single = list.length === 1;
+  const noBtn = `<button class="btn-sequel-no" onclick="closeSequelModal()">${T.sequelNo}</button>`;
+  const cards = list.map(m => {
     const meta = [
       T.format[m.format] || m.format,
       T.mediaStatus[m.status] || m.status,
       m.startDate?.year,
       m.episodes ? m.episodes + ' ' + T.epShort : ''
     ].filter(Boolean).join(' · ');
+    const url = `https://anilist.co/anime/${m.id}`;
     return `
-      <div class="related-item">
-        <img src="${m.coverImage.medium}" class="related-thumb" loading="lazy">
-        <div class="related-info">
-          <div class="related-name">${getTitle(m)}</div>
-          <div class="related-type-label">${meta}</div>
+      <div class="sequel-card">
+        <div class="sequel-card-main">
+          <div class="sequel-card-left">
+            <a class="sequel-cover-link" href="${url}" target="_blank" rel="noopener">
+              <img src="${m.coverImage.large || m.coverImage.medium}" class="sequel-cover" loading="lazy">
+            </a>
+            <div class="sequel-name">${getTitle(m)}</div>
+            <div class="sequel-meta">${meta}</div>
+          </div>
+          <div class="sequel-actions">
+            <button class="btn-sequel-add" onclick="addSequel(${m.id}, this)">${T.sequelAdd}</button>
+            ${single ? noBtn : ''}
+          </div>
         </div>
-        <div class="sequel-actions">
-          <a class="info-link" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener">${T.anilistLink}</a>
-          <button class="btn-sequel-add" onclick="addSequel(${m.id}, this)">${T.sequelAdd}</button>
-        </div>
+        <a class="info-link" href="${url}" target="_blank" rel="noopener">${T.anilistLink}</a>
       </div>`;
-  }).join('');
+  });
+  $('sequel-body').innerHTML =
+    `<div class="sequel-cards">${cards.join(`<div class="sequel-and">${T.sequelAnd}</div>`)}</div>` +
+    (single ? '' : `<div class="sequel-actions sequel-actions-global">${noBtn}</div>`);
+  $('sequel-modal').querySelector('.modal').classList.toggle('multi', !single);
   $('sequel-modal').classList.add('open');
 }
 

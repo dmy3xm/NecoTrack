@@ -33,6 +33,7 @@ const T = {
   sequelAdd: '+ До планів',
   sequelAdded: 'Додано до планів',
   sequelNo: 'Не зараз',
+  sequelAnd: 'також',
   // catalog search
   searching: 'Searching…', nothingFound: 'Nothing found',
   catalogResults: 'AniList catalog results', catalogInList: 'In list', catalogAdd: '+ Add',
