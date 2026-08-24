@@ -9,6 +9,7 @@ let groupingEnabled = true;
 let editingEntry = null;
 let modalScore = 0;
 let modalStatus = '';
+let modalStatusTouched = false;
 let mediaCache = {};
 
 const $ = id => document.getElementById(id);
@@ -496,12 +497,15 @@ function openModal(entryJson) {
   editingEntry = entry;
   modalScore = entry.score || 0;
   modalStatus = entry.status;
+  modalStatusTouched = false;
 
   $('modal-cover').src = entry.media.coverImage.large || entry.media.coverImage.medium;
   $('modal-title').textContent = getTitle(entry.media);
   $('modal-subtitle').textContent =
     (entry.media.season || '') + (entry.media.seasonYear ? ' ' + entry.media.seasonYear : '');
   $('modal-progress').value = entry.progress || 0;
+  if (entry.media.episodes) $('modal-progress').max = entry.media.episodes;
+  else $('modal-progress').removeAttribute('max');
   $('modal-total').textContent = entry.media.episodes || '?';
   $('modal-notes').value = entry.notes || '';
 
@@ -530,10 +534,20 @@ function closeModal() {
 
 function setModalStatus(s) {
   modalStatus = s;
+  modalStatusTouched = true;
   document.querySelectorAll('.status-btn').forEach(b => {
     b.className = 'status-btn';
     if (b.dataset.status === s) b.classList.add('active-' + s);
   });
+}
+
+function clampProgress() {
+  const inp = $('modal-progress');
+  const total = editingEntry?.media?.episodes;
+  const val = parseInt(inp.value);
+  if (isNaN(val)) return;
+  if (val < 0) inp.value = 0;
+  else if (total && val > total) inp.value = total;
 }
 
 function adjustProgress(delta) {
@@ -545,22 +559,32 @@ function adjustProgress(delta) {
 
 async function saveEntry() {
   if (!editingEntry) return;
-  const progress = parseInt($('modal-progress').value) || 0;
+  const total = editingEntry.media.episodes || 0;
+  const raw = parseInt($('modal-progress').value) || 0;
+  const progress = total ? Math.max(0, Math.min(total, raw)) : Math.max(0, raw);
   const notes = $('modal-notes').value;
   const wasCompleted = editingEntry.status === 'COMPLETED';
+
+  // Mirror quickPlus: watching an episode can start or finish a title. Only a
+  // real increase counts, and an explicit pick in the status row always wins.
+  let status = modalStatus;
+  if (!modalStatusTouched && progress > (editingEntry.progress || 0) && ['PLANNING', 'PAUSED', 'DROPPED'].includes(status)) status = 'CURRENT';
+  if (total && progress >= total && status === 'CURRENT') status = 'COMPLETED';
+  const justCompleted = status === 'COMPLETED' && !wasCompleted;
+
   try {
-    await updateEntry(editingEntry.id, modalStatus, modalScore, progress, notes);
+    await updateEntry(editingEntry.id, status, modalScore, progress, notes);
     const idx = allEntries.findIndex(e => e.id === editingEntry.id);
     if (idx >= 0) {
       allEntries[idx].score = modalScore;
-      allEntries[idx].status = modalStatus;
+      allEntries[idx].status = status;
       allEntries[idx].progress = progress;
       allEntries[idx].notes = notes;
     }
     closeModal();
     renderList();
-    showToast(T.saved);
-    if (modalStatus === 'COMPLETED' && !wasCompleted && idx >= 0) maybeSuggestSequel(allEntries[idx]);
+    showToast(justCompleted ? T.completed : T.saved);
+    if (justCompleted && idx >= 0) maybeSuggestSequel(allEntries[idx]);
   } catch(e) {
     showToast(T.errPrefix + e.message);
   }
@@ -666,7 +690,6 @@ function renderInfoModal(media) {
   if (entry) {
     controlsHtml = `<div class="field-group">
       <div class="field-label">${T.inList}: ${T.status[entry.status] || entry.status}</div>
-      <div class="status-row"><button class="status-btn" onclick="closeInfoModal(); openModal(allEntries.find(e=>e.media.id===${media.id}))">${T.edit}</button></div>
     </div>`;
   } else {
     const stBtns = Object.keys(T.status).map(s =>
@@ -726,6 +749,13 @@ function renderInfoModal(media) {
       ${relatedHtml}
     </div>
   `;
+
+  // Editing is only offered for titles already on the list.
+  const editBtn = $('info-edit-btn');
+  editBtn.style.display = entry ? '' : 'none';
+  editBtn.onclick = entry
+    ? () => { closeInfoModal(); openModal(allEntries.find(e => e.media.id === media.id)); }
+    : null;
 }
 
 function closeInfoModal() {

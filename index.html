@@ -116,7 +116,7 @@
         <div class="field-label" data-i18n="fldProgress"></div>
         <div class="progress-row">
           <button class="btn-prog" onclick="adjustProgress(-1)">−</button>
-          <input type="number" id="modal-progress" min="0" value="0">
+          <input type="number" id="modal-progress" min="0" value="0" oninput="clampProgress()">
           <span>/ <span id="modal-total">?</span> <span data-i18n="epShort"></span></span>
           <button class="btn-prog" onclick="adjustProgress(1)">+</button>
         </div>
@@ -148,6 +148,7 @@
       <div class="loading"><div class="spinner"></div><div data-i18n="loading"></div></div>
     </div>
     <div class="modal-footer">
+      <button class="btn-save" id="info-edit-btn" data-i18n="edit"></button>
       <button class="btn-cancel" onclick="closeInfoModal()" data-i18n="close"></button>
     </div>
   </div>

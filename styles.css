@@ -906,6 +906,8 @@
   }
   .btn-save:hover { background: var(--accent-hover); }
 
+  #info-edit-btn { margin-right: auto; }
+
   .btn-cancel {
     background: var(--surface2);
     border: 1px solid var(--border);
