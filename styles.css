@@ -1133,6 +1133,8 @@
   }
 
   /* SEQUEL SUGGESTION MODAL */
+  /* Below the other overlays so the info modal can open on top of it. */
+  #sequel-modal { z-index: 190; }
   #sequel-modal .modal { max-width: 400px; }
   #sequel-modal .modal-header { padding-bottom: 0; border-bottom: none; gap: 10px; }
 
@@ -1167,11 +1169,34 @@
 
   .sequel-cover-link {
     display: block;
+    position: relative;
+    cursor: pointer;
     border-radius: var(--radius-sm);
-    transition: opacity 0.15s, outline-color 0.15s;
+    transition: outline-color 0.15s;
     outline: 2px solid transparent;
   }
-  .sequel-cover-link:hover { opacity: 0.85; outline-color: var(--accent); }
+  .sequel-cover-link:hover { outline-color: var(--accent); }
+
+  /* Unaired sequel: dim the top of the poster and label it. Hovering the
+     poster clears both so the art can be seen. */
+  .sequel-cover-badge {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 5px 26px;
+    background: linear-gradient(to bottom, rgba(10,8,6,0.94) 0%, rgba(10,8,6,0.72) 40%, rgba(10,8,6,0) 100%);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    color: var(--accent);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    text-align: center;
+    pointer-events: none;
+    transition: opacity 0.15s;
+  }
+  .sequel-cover-link:hover .sequel-cover-badge { opacity: 0; }
 
   .sequel-cover {
     width: 100%;
@@ -1239,7 +1264,12 @@
   }
   .btn-sequel-no:hover { border-color: var(--text-muted); color: var(--text); }
 
-  .sequel-card > .info-link { align-self: center; }
+  .sequel-card > .info-link {
+    align-self: center;
+    background: none;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+  }
 
   .sequel-and {
     font-size: 12px;

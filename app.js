@@ -262,7 +262,11 @@ async function addEntry(mediaId, status) {
     }
   `, { mediaId, status });
   const entry = data.SaveMediaListEntry;
-  allEntries.push(entry);
+  // The same title can be added twice now that the info modal is reachable
+  // from the sequel popup — replace rather than duplicate the row.
+  const existing = allEntries.findIndex(e => e.media.id === entry.media.id);
+  if (existing >= 0) allEntries[existing] = entry;
+  else allEntries.push(entry);
   renderList();
   return entry;
 }
@@ -800,20 +804,22 @@ function renderSequelModal(sourceTitle, list) {
   const single = list.length === 1;
   const noBtn = `<button class="btn-sequel-no" onclick="closeSequelModal()">${T.sequelNo}</button>`;
   const cards = list.map(m => {
+    // An unaired sequel wears its status on the poster instead of the meta line.
+    const unreleased = m.status === 'NOT_YET_RELEASED';
     const meta = [
       T.format[m.format] || m.format,
-      T.mediaStatus[m.status] || m.status,
+      unreleased ? '' : (T.mediaStatus[m.status] || m.status),
       m.startDate?.year,
       m.episodes ? m.episodes + ' ' + T.epShort : ''
     ].filter(Boolean).join(' · ');
-    const url = `https://anilist.co/anime/${m.id}`;
     return `
       <div class="sequel-card">
         <div class="sequel-card-main">
           <div class="sequel-card-left">
-            <a class="sequel-cover-link" href="${url}" target="_blank" rel="noopener">
+            <div class="sequel-cover-link" onclick="openInfoModal(${m.id})">
               <img src="${m.coverImage.large || m.coverImage.medium}" class="sequel-cover" loading="lazy">
-            </a>
+              ${unreleased ? `<div class="sequel-cover-badge">${T.mediaStatus[m.status]}</div>` : ''}
+            </div>
             <div class="sequel-name">${getTitle(m)}</div>
             <div class="sequel-meta">${meta}</div>
           </div>
@@ -822,7 +828,7 @@ function renderSequelModal(sourceTitle, list) {
             ${single ? noBtn : ''}
           </div>
         </div>
-        <a class="info-link" href="${url}" target="_blank" rel="noopener">${T.anilistLink}</a>
+        <button class="info-link" onclick="openInfoModal(${m.id})">${T.sequelInfo}</button>
       </div>`;
   });
   $('sequel-body').innerHTML =
