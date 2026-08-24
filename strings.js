@@ -22,7 +22,7 @@ const T = {
   // list / stats / rows
   empty: 'Тут ще нічого немає', emptyAlt: 'Порожньо',
   statAnime: 'аніме', statAvg: 'сер. оцінка', statEpisodes: 'переглянуто епізодів',
-  seasons: 'seasons', plusEpisode: '+1 episode', loading: 'Завантаження…',
+  seasons: 'entries', plusEpisode: '+1 episode', loading: 'Завантаження…',
   // info modal
   related: 'Пов\'язані', inList: 'У списку', showMore: 'Показати більше', showLess: 'Згорнути',
   anilistLink: 'Відкрити на AniList ↗', addPrompt: 'Додати до списку:', edit: 'Редагувати', addedToList: 'Додано',
