@@ -459,14 +459,17 @@ async function quickPlus(entryId) {
     await updateEntry(entry.id, newStatus, entry.score, newProg, entry.notes);
     entry.progress = newProg;
     entry.status = newStatus;
+    let justCompleted = false;
     if (entry.media.episodes && newProg >= entry.media.episodes && entry.status === 'CURRENT') {
       entry.status = 'COMPLETED';
       await updateEntry(entry.id, 'COMPLETED', entry.score, newProg, entry.notes);
       showToast(T.completed);
+      justCompleted = true;
     } else {
       showToast(T.toastProgress(newProg, entry.media.episodes));
     }
     renderList();
+    if (justCompleted) maybeSuggestSequel(entry);
   } catch(e) {
     showToast(T.errPrefix + e.message);
   }
@@ -544,6 +547,7 @@ async function saveEntry() {
   if (!editingEntry) return;
   const progress = parseInt($('modal-progress').value) || 0;
   const notes = $('modal-notes').value;
+  const wasCompleted = editingEntry.status === 'COMPLETED';
   try {
     await updateEntry(editingEntry.id, modalStatus, modalScore, progress, notes);
     const idx = allEntries.findIndex(e => e.id === editingEntry.id);
@@ -556,6 +560,7 @@ async function saveEntry() {
     closeModal();
     renderList();
     showToast(T.saved);
+    if (modalStatus === 'COMPLETED' && !wasCompleted && idx >= 0) maybeSuggestSequel(allEntries[idx]);
   } catch(e) {
     showToast(T.errPrefix + e.message);
   }
@@ -733,6 +738,79 @@ function toggleInfoDesc(id, btn) {
   btn.textContent = el.classList.contains('expanded') ? T.showLess : T.showMore;
 }
 
+// ── SEQUEL SUGGESTION ──
+// Fired right after an entry becomes COMPLETED: offer its direct sequels for Planning.
+// The list query only carries relation ids, so titles/covers need one extra fetch.
+async function maybeSuggestSequel(entry) {
+  const listIds = new Set(allEntries.map(e => e.media.id));
+  const ids = (entry.media.relations?.edges || [])
+    .filter(e => e.relationType === 'SEQUEL' && e.node.type === 'ANIME' && !listIds.has(e.node.id))
+    .map(e => e.node.id);
+  if (!ids.length) return;
+  try {
+    const data = await gql(`
+      query($ids: [Int]) {
+        Page(perPage: 10) {
+          media(id_in: $ids, type: ANIME) {
+            id title { romaji english } coverImage { medium }
+            format episodes status startDate { year }
+          }
+        }
+      }
+    `, { ids });
+    const found = data.Page?.media || [];
+    if (found.length) renderSequelModal(getTitle(entry.media), found);
+  } catch(e) {
+    // A failed suggestion must not stack an error toast on top of "Completed!".
+  }
+}
+
+function renderSequelModal(sourceTitle, list) {
+  $('sequel-subtitle').textContent = T.sequelDesc(sourceTitle);
+  $('sequel-body').innerHTML = list.map(m => {
+    const meta = [
+      T.format[m.format] || m.format,
+      T.mediaStatus[m.status] || m.status,
+      m.startDate?.year,
+      m.episodes ? m.episodes + ' ' + T.epShort : ''
+    ].filter(Boolean).join(' · ');
+    return `
+      <div class="related-item">
+        <img src="${m.coverImage.medium}" class="related-thumb" loading="lazy">
+        <div class="related-info">
+          <div class="related-name">${getTitle(m)}</div>
+          <div class="related-type-label">${meta}</div>
+        </div>
+        <div class="sequel-actions">
+          <a class="info-link" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener">${T.anilistLink}</a>
+          <button class="btn-sequel-add" onclick="addSequel(${m.id}, this)">${T.sequelAdd}</button>
+        </div>
+      </div>`;
+  }).join('');
+  $('sequel-modal').classList.add('open');
+}
+
+async function addSequel(mediaId, btn) {
+  btn.textContent = '…';
+  btn.disabled = true;
+  try {
+    await addEntry(mediaId, 'PLANNING');
+    btn.textContent = T.sequelAdded;
+    btn.classList.add('in-list');
+    showToast(T.added);
+    // Nothing left to offer once every suggestion has been taken.
+    if (!$('sequel-body').querySelector('.btn-sequel-add:not(.in-list)')) closeSequelModal();
+  } catch(e) {
+    btn.textContent = T.sequelAdd;
+    btn.disabled = false;
+    showToast(T.errPrefix + e.message);
+  }
+}
+
+function closeSequelModal() {
+  $('sequel-modal').classList.remove('open');
+}
+
 // ── INIT ──
 async function initApp() {
   $('auth-screen').style.display = 'none';
@@ -823,7 +901,7 @@ function showToast(msg) {
 
   document.addEventListener('touchstart', e => {
     // ignore if touch starts inside modal or scrollable catalog
-    if (e.target.closest('#edit-modal') || e.target.closest('#info-modal') || e.target.closest('.catalog-dropdown') || e.target.closest('.tabs-wrap')) return;
+    if (e.target.closest('#edit-modal') || e.target.closest('#info-modal') || e.target.closest('#sequel-modal') || e.target.closest('.catalog-dropdown') || e.target.closest('.tabs-wrap')) return;
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
     touchStartTime = Date.now();
@@ -859,6 +937,7 @@ function showToast(msg) {
 // ── DISMISS ON OUTSIDE CLICK ──
 $('edit-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
 $('info-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeInfoModal(); });
+$('sequel-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSequelModal(); });
 document.addEventListener('click', e => {
   if (!e.target.closest('.search-wrap')) $('catalog-results').style.display = 'none';
 });

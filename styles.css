@@ -1130,6 +1130,46 @@
     flex-shrink: 0;
   }
 
+  /* SEQUEL SUGGESTION MODAL */
+  #sequel-modal .modal { max-width: 440px; }
+  #sequel-modal .modal-header { padding-bottom: 0; border-bottom: none; gap: 10px; }
+  #sequel-modal .related-item { cursor: default; padding: 8px 0; }
+  #sequel-modal .related-item:hover { background: none; padding-left: 0; }
+
+  .sequel-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .btn-sequel-add {
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    color: var(--accent);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .btn-sequel-add:not(:disabled):hover { background: var(--accent); color: var(--bg); }
+  .btn-sequel-add.in-list,
+  .btn-sequel-add:disabled {
+    background: var(--surface3);
+    border-color: var(--border);
+    color: var(--text-muted);
+    cursor: default;
+  }
+
+  @media (max-width: 480px) {
+    #sequel-modal .related-item { flex-wrap: wrap; }
+    .sequel-actions { width: 100%; justify-content: flex-end; }
+  }
+
   /* SCORE DISTRIBUTION GRAPH */
   .score-dist {
     display: flex;

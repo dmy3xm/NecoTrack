@@ -27,6 +27,12 @@ const T = {
   related: 'Пов\'язані', inList: 'У списку', showMore: 'Показати більше', showLess: 'Згорнути',
   anilistLink: 'Відкрити на AniList ↗', addPrompt: 'Додати до списку:', edit: 'Редагувати', addedToList: 'Додано',
   communityScore: 'Спільнота', myScore: 'Моя оцінка',
+  // sequel suggestion
+  sequelTitle: 'Є продовження!',
+  sequelDesc: title => `Ви завершили «${title}». Додати продовження до планів?`,
+  sequelAdd: '+ До планів',
+  sequelAdded: 'Додано до планів',
+  sequelNo: 'Не зараз',
   // catalog search
   searching: 'Searching…', nothingFound: 'Nothing found',
   catalogResults: 'AniList catalog results', catalogInList: 'In list', catalogAdd: '+ Add',
