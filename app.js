@@ -834,17 +834,19 @@ function renderSequelModal(sourceTitle, list) {
     return `
       <div class="sequel-card">
         <div class="sequel-card-main">
-          <div class="sequel-card-left">
-            <div class="sequel-cover-link" onclick="openInfoModal(${m.id})">
-              <img src="${m.coverImage.large || m.coverImage.medium}" class="sequel-cover" loading="lazy">
-              ${unreleased ? `<div class="sequel-cover-badge">${T.mediaStatus[m.status]}</div>` : ''}
-            </div>
-            <div class="sequel-name">${getTitle(m)}</div>
-            <div class="sequel-meta">${meta}</div>
+          <div class="sequel-cover-link" onclick="openInfoModal(${m.id})">
+            <img src="${m.coverImage.large || m.coverImage.medium}" class="sequel-cover" loading="lazy">
+            ${unreleased ? `<div class="sequel-cover-badge">${T.mediaStatus[m.status]}</div>` : ''}
           </div>
-          <div class="sequel-actions">
-            <button class="btn-sequel-add" onclick="addSequel(${m.id}, this)">${T.sequelAdd}</button>
-            ${single ? noBtn : ''}
+          <div class="sequel-body">
+            <div class="sequel-text">
+              <div class="sequel-name">${getTitle(m)}</div>
+              <div class="sequel-meta">${meta}</div>
+            </div>
+            <div class="sequel-actions">
+              <button class="btn-sequel-add" onclick="addSequel(${m.id}, this)">${T.sequelAdd}</button>
+              ${single ? noBtn : ''}
+            </div>
           </div>
         </div>
         <button class="info-link" onclick="openInfoModal(${m.id})">${T.sequelInfo}</button>

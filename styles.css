@@ -1196,21 +1196,26 @@
 
   .sequel-card-main {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     gap: 14px;
   }
 
-  .sequel-card-left {
+  /* Right-hand column: name and meta sit directly beside the cover they
+     describe, with the buttons pushed to the bottom of the same column. */
+  .sequel-body {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    flex-shrink: 0;
-    width: 110px;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
   }
+  .sequel-body .sequel-actions { margin-top: auto; }
 
   .sequel-cover-link {
     display: block;
     position: relative;
+    width: 110px;
+    flex-shrink: 0;
     cursor: pointer;
     border-radius: var(--radius-sm);
     transition: outline-color 0.15s;
@@ -1254,13 +1259,15 @@
     display: block;
   }
 
+  .sequel-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
   .sequel-name {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text);
     line-height: 1.35;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -1271,7 +1278,6 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    flex: 1;
     min-width: 0;
   }
   .sequel-actions-global { margin-top: 4px; align-items: center; }
@@ -1330,7 +1336,7 @@
 
   @media (min-width: 650px) {
     .sequel-cards { flex-direction: row; align-items: flex-start; }
-    .sequel-card-left { width: 130px; }
+    .sequel-cover-link { width: 130px; }
     #sequel-modal .modal.multi { max-width: 700px; }
   }
 
