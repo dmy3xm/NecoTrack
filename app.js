@@ -12,6 +12,9 @@ let modalStatus = '';
 let modalStatusTouched = false;
 let mediaCache = {};
 
+// Formats that count as a main series; anything else is side content.
+const MAIN_FORMATS = ['TV', 'TV_SHORT'];
+
 const $ = id => document.getElementById(id);
 
 // resolve "status.CURRENT" style dotted keys against T
@@ -88,6 +91,7 @@ async function fetchList(userId) {
               id
               title { romaji english }
               coverImage { medium large }
+              format
               episodes
               season
               seasonYear
@@ -139,8 +143,17 @@ function buildSeriesGroups(entries) {
   for (const e of entries) {
     const id = e.media.id;
     for (const edge of e.media.relations.edges) {
-      if (['SEQUEL','PREQUEL'].includes(edge.relationType) && edge.node.type === 'ANIME') {
-        if (byId[edge.node.id]) union(id, edge.node.id);
+      if (edge.node.type !== 'ANIME' || !byId[edge.node.id]) continue;
+      const rt = edge.relationType;
+      if (rt === 'SEQUEL' || rt === 'PREQUEL') {
+        union(id, edge.node.id);
+      } else if (rt === 'PARENT' || rt === 'SIDE_STORY') {
+        // Attach movies/OVAs/specials to their series, but never merge two main
+        // series this way — that collapses umbrella franchises like Gundam.
+        const other = byId[edge.node.id];
+        if (!MAIN_FORMATS.includes(e.media.format) || !MAIN_FORMATS.includes(other.media.format)) {
+          union(id, edge.node.id);
+        }
       }
     }
   }
@@ -164,7 +177,8 @@ function getTitle(media) {
 }
 
 function getSeriesTitle(group) {
-  const t = getTitle(group[0].media);
+  const main = group.find(e => MAIN_FORMATS.includes(e.media.format)) || group[0];
+  const t = getTitle(main.media);
   return t.replace(/\s+(Season\s+\d+|S\d+|\d+(st|nd|rd|th)\s+Season)$/i,'').trim() || t;
 }
 
@@ -255,7 +269,7 @@ async function addEntry(mediaId, status) {
         id status score progress notes updatedAt
         media {
           id title { romaji english } coverImage { medium large }
-          episodes season seasonYear
+          format episodes season seasonYear
           relations { edges { relationType(version: 2) node { id type } } }
         }
       }
