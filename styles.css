@@ -40,6 +40,34 @@
     line-height: 1.5;
   }
 
+  /* ── SCROLLBARS ──
+     Every scrollable surface gets the same 4px accent pill: page, modals,
+     catalog dropdown, textareas. Mouse-driven devices only — gated on pointer
+     capability, not width, because a tablet can be 1024px+ and still be
+     touch-only. Touch keeps the native overlay bar, which fades on its own and
+     reserves no width. */
+  @media (hover: hover) and (pointer: fine) {
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 999px;
+      min-height: 26px;
+    }
+    /* Scrollbars aren't clipped to border-radius, so on rounded containers the
+       track is inset by the corner radius or the bar runs past the corner. */
+    .modal::-webkit-scrollbar-track { margin: 18px 0; }
+    .catalog-dropdown::-webkit-scrollbar-track { margin: 10px 0; }
+
+    /* Firefox only. Setting scrollbar-width in Chrome makes it ignore every
+       ::-webkit-scrollbar rule above, widening the bar and squaring the thumb.
+       scrollbar-color inherits, scrollbar-width does not. */
+    @supports not selector(::-webkit-scrollbar) {
+      html { scrollbar-color: var(--accent) transparent; }
+      html, .modal, .catalog-dropdown, textarea { scrollbar-width: thin; }
+    }
+  }
+
   /* ── AUTH ── */
   #auth-screen {
     display: flex;
@@ -731,29 +759,6 @@
     box-shadow: 0 24px 60px rgba(0,0,0,0.6);
   }
 
-  /* Minimal scroll indicator: a small accent pill, no track, no arrows.
-     Mouse-driven devices only — phones and tablets keep their native overlay
-     scrollbar, which fades out on its own. Gated on pointer capability rather
-     than width, because a tablet can be 1024px+ and still be touch-only. */
-  @media (hover: hover) and (pointer: fine) {
-    .modal::-webkit-scrollbar { width: 4px; }
-    /* Inset by the modal's 18px corner radius — scrollbars aren't clipped to
-       border-radius, so without this the bar runs past the rounded corner. */
-    .modal::-webkit-scrollbar-track { background: transparent; margin: 18px 0; }
-    .modal::-webkit-scrollbar-thumb {
-      background: var(--accent);
-      border-radius: 999px;
-      min-height: 26px;
-    }
-    /* Firefox only. Setting scrollbar-width in Chrome would override the rules
-       above, widening the bar to 10px and squaring off the thumb. */
-    @supports not selector(::-webkit-scrollbar) {
-      .modal {
-        scrollbar-width: thin;
-        scrollbar-color: var(--accent) transparent;
-      }
-    }
-  }
 
   .modal-header {
     padding: 18px 18px 14px;
