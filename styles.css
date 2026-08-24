@@ -723,28 +723,35 @@
     width: 100%;
     max-width: 460px;
     max-height: 90vh;
-    overflow-y: auto;
+    /* overflow-x must be explicit: a non-visible value on one axis computes the
+       other to `auto`, which iOS treats as pannable and rubber-bands sideways. */
+    overflow: hidden auto;
     display: flex;
     flex-direction: column;
     box-shadow: 0 24px 60px rgba(0,0,0,0.6);
   }
 
-  /* Minimal scroll indicator: a small accent pill, no track, no arrows. */
-  .modal::-webkit-scrollbar { width: 4px; }
-  /* Inset by the modal's 18px corner radius — scrollbars aren't clipped to
-     border-radius, so without this the bar runs past the rounded corner. */
-  .modal::-webkit-scrollbar-track { background: transparent; margin: 18px 0; }
-  .modal::-webkit-scrollbar-thumb {
-    background: var(--accent);
-    border-radius: 999px;
-    min-height: 26px;
-  }
-  /* Firefox only. Setting scrollbar-width in Chrome would override the rules
-     above, widening the bar to 10px and squaring off the thumb. */
-  @supports not selector(::-webkit-scrollbar) {
-    .modal {
-      scrollbar-width: thin;
-      scrollbar-color: var(--accent) transparent;
+  /* Minimal scroll indicator: a small accent pill, no track, no arrows.
+     Mouse-driven devices only — phones and tablets keep their native overlay
+     scrollbar, which fades out on its own. Gated on pointer capability rather
+     than width, because a tablet can be 1024px+ and still be touch-only. */
+  @media (hover: hover) and (pointer: fine) {
+    .modal::-webkit-scrollbar { width: 4px; }
+    /* Inset by the modal's 18px corner radius — scrollbars aren't clipped to
+       border-radius, so without this the bar runs past the rounded corner. */
+    .modal::-webkit-scrollbar-track { background: transparent; margin: 18px 0; }
+    .modal::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 999px;
+      min-height: 26px;
+    }
+    /* Firefox only. Setting scrollbar-width in Chrome would override the rules
+       above, widening the bar to 10px and squaring off the thumb. */
+    @supports not selector(::-webkit-scrollbar) {
+      .modal {
+        scrollbar-width: thin;
+        scrollbar-color: var(--accent) transparent;
+      }
     }
   }
 
