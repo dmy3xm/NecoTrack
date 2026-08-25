@@ -1001,9 +1001,7 @@ function playTrailer(vid, card) {
          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
               stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
        </button>`);
-    // a short peek so it's noticed, then it settles back
-    card.classList.add('fs-peek');
-    setTimeout(() => card.classList.remove('fs-peek'), 2500);
+    peekFs(card);
   }
   // Laid over the thumbnail rather than replacing it, so stopping is a plain
   // removal and the card is back to its poster with nothing to rebuild.
@@ -1014,6 +1012,13 @@ function playTrailer(vid, card) {
 
 // Removing the iframe is what actually stops playback — hiding the overlay
 // leaves the video running with its audio.
+let fsPeekTimer = null;
+function peekFs(card) {
+  card.classList.add('fs-peek');
+  clearTimeout(fsPeekTimer);
+  fsPeekTimer = setTimeout(() => card.classList.remove('fs-peek'), 2800);
+}
+
 function fullscreenTrailer(btn) {
   const f = btn.parentElement.querySelector('iframe');
   if (!f) return;
@@ -1025,6 +1030,8 @@ function stopTrailer() {
   if (!card) return;
   card.querySelector('iframe')?.remove();
   card.querySelector('.trailer-fs')?.remove();
+  card.classList.remove('fs-peek');
+  clearTimeout(fsPeekTimer);
 }
 
 function closeInfoModal() {

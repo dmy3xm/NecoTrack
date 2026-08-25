@@ -1612,18 +1612,19 @@
     justify-content: center;
     cursor: pointer;
     padding: 0;
-    /* Touch has no hover, and once the iframe covers the card it swallows every
-       tap — so there it stays faintly visible rather than hiding for good. */
-    opacity: 0.4;
+    /* Touch keeps it faintly visible: there is no hover to bring it back, and
+       the iframe takes every tap that lands on it, so hiding it would strand it. */
+    opacity: 0.3;
     transition: opacity 0.25s, background 0.15s, border-color 0.15s, color 0.15s;
   }
-  /* Shown briefly right after playback starts, on any device. */
+  /* Full strength for a moment when playback starts. */
   .trailer-card.fs-peek .trailer-fs { opacity: 1; }
 
   @media (hover: hover) and (pointer: fine) {
-    /* With a pointer, keep it out of the picture until the mouse is on the video */
-    .trailer-fs { opacity: 0; }
-    .trailer-card:hover .trailer-fs { opacity: 1; }
+    /* A pointer can bring it back, so out of the way entirely until hovered. */
+    .trailer-fs { opacity: 0; pointer-events: none; }
+    .trailer-card:hover .trailer-fs,
+    .trailer-card.fs-peek .trailer-fs { opacity: 1; pointer-events: auto; }
     .trailer-fs:hover { background: var(--accent); border-color: var(--accent); color: var(--bg); }
   }
 
