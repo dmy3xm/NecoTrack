@@ -992,6 +992,19 @@ function renderInfoModal(media) {
 // playsinline stops iOS hijacking into its own fullscreen player.
 function playTrailer(vid, card) {
   if (card.querySelector('iframe')) return;
+  // controls=0 takes YouTube's fullscreen button with it, so supply our own.
+  // Hidden where the API isn't available — iOS Safari won't fullscreen an iframe.
+  if (document.fullscreenEnabled) {
+    card.insertAdjacentHTML('beforeend',
+      `<button class="trailer-fs" title="${T.trailerFullscreen}" aria-label="${T.trailerFullscreen}"
+         onclick="event.stopPropagation(); fullscreenTrailer(this)">
+         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+              stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+       </button>`);
+    // a short peek so it's noticed, then it settles back
+    card.classList.add('fs-peek');
+    setTimeout(() => card.classList.remove('fs-peek'), 2500);
+  }
   // Laid over the thumbnail rather than replacing it, so stopping is a plain
   // removal and the card is back to its poster with nothing to rebuild.
   card.insertAdjacentHTML('beforeend',
@@ -1001,9 +1014,17 @@ function playTrailer(vid, card) {
 
 // Removing the iframe is what actually stops playback — hiding the overlay
 // leaves the video running with its audio.
+function fullscreenTrailer(btn) {
+  const f = btn.parentElement.querySelector('iframe');
+  if (!f) return;
+  (f.requestFullscreen || f.webkitRequestFullscreen || f.webkitEnterFullscreen)?.call(f);
+}
+
 function stopTrailer() {
-  const f = $('info-body').querySelector('.trailer-card iframe');
-  if (f) f.remove();
+  const card = $('info-body').querySelector('.trailer-card');
+  if (!card) return;
+  card.querySelector('iframe')?.remove();
+  card.querySelector('.trailer-fs')?.remove();
 }
 
 function closeInfoModal() {

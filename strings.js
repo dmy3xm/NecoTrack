@@ -47,6 +47,7 @@ const T = {
   trailer: 'Трейлер',
   trailerOfficial: 'Офіційний трейлер',
   trailerYouTube: 'YouTube ↗',
+  trailerFullscreen: 'На весь екран',
   sequelInfo: 'Детальніше',
   // catalog search
   searching: 'Searching…', nothingFound: 'Nothing found',

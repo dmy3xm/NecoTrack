@@ -1596,6 +1596,37 @@
   }
   .trailer-label a { color: var(--accent); text-decoration: none; flex-shrink: 0; }
 
+  .trailer-fs {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 1;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    background: rgba(10,8,6,0.55);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    /* Touch has no hover, and once the iframe covers the card it swallows every
+       tap — so there it stays faintly visible rather than hiding for good. */
+    opacity: 0.4;
+    transition: opacity 0.25s, background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  /* Shown briefly right after playback starts, on any device. */
+  .trailer-card.fs-peek .trailer-fs { opacity: 1; }
+
+  @media (hover: hover) and (pointer: fine) {
+    /* With a pointer, keep it out of the picture until the mouse is on the video */
+    .trailer-fs { opacity: 0; }
+    .trailer-card:hover .trailer-fs { opacity: 1; }
+    .trailer-fs:hover { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  }
+
   .trailer-card iframe {
     position: absolute;
     inset: 0;
