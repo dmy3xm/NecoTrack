@@ -34,6 +34,13 @@ const T = {
   sequelAdded: 'Додано до планів',
   sequelNo: 'Не зараз',
   sequelAnd: 'також',
+  // top (global AniList ranking)
+  tabTop: 'Топ',
+  topAllYears: 'Всі роки',
+  topAllTime: 'за весь час',
+  topHeading: label => `Топ ${label}`,
+  topSearchPh: 'Пошук на AniList…',
+  topMore: 'Показати ще',
   sequelInfo: 'Детальніше',
   // catalog search
   searching: 'Searching…', nothingFound: 'Nothing found',

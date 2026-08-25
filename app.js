@@ -11,6 +11,8 @@ let modalScore = 0;
 let modalStatus = '';
 let modalStatusTouched = false;
 let mediaCache = {};
+let topYear = 'all';
+let topCache = {};   // year -> { rows, page, hasNext }
 
 // Formats that count as a main series; anything else is side content.
 const MAIN_FORMATS = ['TV', 'TV_SHORT'];
@@ -198,7 +200,7 @@ let catalogTimer = null;
 let lastCatalogQuery = '';
 
 function onSearchInput(val) {
-  renderList();
+  if (currentTab !== 'TOP') renderList();
   const v = val.trim();
   if (v.length < 2) { closeCatalog(); return; }
   clearTimeout(catalogTimer);
@@ -320,6 +322,9 @@ document.addEventListener('click', (e) => {
 
 // ── RENDER ──
 function renderList() {
+  applyTopChrome();
+  if (currentTab === 'TOP') { renderTop(); return; }
+
   const container = $('list-container');
   const search = ($('search-input').value || '').toLowerCase().trim();
   const sort = $('sort-select').value;
@@ -492,6 +497,119 @@ async function quickPlus(entryId) {
   } catch(e) {
     showToast(T.errPrefix + e.message);
   }
+}
+
+// ── TOP (global AniList ranking) ──
+// Current year down to 1940, the oldest year AniList has a scored entry for.
+// The current year is the newest worth offering — next year has nothing scored.
+// Rebuilt per render so a session left open across New Year still picks it up.
+const TOP_FIRST_YEAR = 1940;
+function topYears() {
+  const out = ['all'];
+  for (let y = new Date().getFullYear(); y >= TOP_FIRST_YEAR; y--) out.push(y);
+  return out;
+}
+
+// Sort, grouping and the stats bar all describe the user's own list, so they are
+// hidden on Top; the search box becomes a global AniList search instead.
+function applyTopChrome() {
+  const isTop = currentTab === 'TOP';
+  $('sort-select').style.display = isTop ? 'none' : '';
+  document.querySelector('.toggle-group').style.display = isTop ? 'none' : '';
+  $('stats-bar').style.display = isTop ? 'none' : '';
+  $('top-filters').classList.toggle('open', isTop);
+  const inp = $('search-input');
+  inp.placeholder = isTop ? T.topSearchPh : T.searchPlaceholder;
+  inp.classList.toggle('global-search', isTop);
+}
+
+async function fetchTop(year, page) {
+  const data = await gql(`
+    query($page: Int, $year: Int) {
+      Page(page: $page, perPage: 50) {
+        pageInfo { hasNextPage }
+        media(type: ANIME, sort: SCORE_DESC, seasonYear: $year, averageScore_greater: 1) {
+          id title { romaji english } coverImage { medium large }
+          averageScore format episodes seasonYear
+        }
+      }
+    }
+  `, { page, year: year === 'all' ? undefined : year });
+  return { rows: data.Page.media, hasNext: data.Page.pageInfo.hasNextPage };
+}
+
+function renderTopYears() {
+  const allOn = topYear === 'all';
+  $('top-years').innerHTML = topYears().map(y => {
+    if (y === 'all') return `<button class="chip chip-all ${allOn ? 'on' : ''}" onclick="setTopYear('all')">${T.topAllYears}</button>`;
+    const cls = String(y) === String(topYear) ? 'on' : (allOn ? 'lit' : '');
+    return `<button class="chip ${cls}" onclick="setTopYear(${y})">${y}</button>`;
+  }).join('');
+  $('top-heading').textContent = T.topHeading(allOn ? T.topAllTime : topYear);
+  // the strip is long now — don't leave the active year scrolled out of sight
+  const active = $('top-years').querySelector('.chip.on');
+  if (active) active.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
+function setTopYear(y) {
+  topYear = y;
+  renderTop();
+}
+
+async function renderTop() {
+  renderTopYears();
+  const container = $('list-container');
+  const key = String(topYear);
+  if (!topCache[key]) {
+    container.innerHTML = `<div class="loading"><div class="spinner"></div><div>${T.loading}</div></div>`;
+    try {
+      const { rows, hasNext } = await fetchTop(topYear, 1);
+      topCache[key] = { rows, page: 1, hasNext };
+    } catch(e) {
+      container.innerHTML = `<div class="empty-state"><div>${T.errPrefix}${e.message}</div></div>`;
+      return;
+    }
+    if (currentTab !== 'TOP' || String(topYear) !== key) return;   // user moved on while loading
+  }
+  paintTop();
+}
+
+function paintTop() {
+  const state = topCache[String(topYear)];
+  if (!state) return;
+  const rows = state.rows.map((m, i) => `
+    <div class="top-row" onclick="openInfoModal(${m.id})">
+      <div class="top-rank${i < 3 ? ' top3' : ''}">${i + 1}</div>
+      <img src="${m.coverImage.medium}" class="top-cover" loading="lazy">
+      <div class="top-info">
+        <div class="top-title">${getTitle(m)}</div>
+        <div class="top-meta">${[T.format[m.format] || m.format, m.seasonYear, m.episodes ? m.episodes + ' ' + T.epShort : ''].filter(Boolean).join(' · ')}</div>
+      </div>
+      <div class="top-score">★ ${(m.averageScore / 10).toFixed(1)}</div>
+    </div>`).join('');
+  const more = state.hasNext
+    ? `<button class="top-more" onclick="loadMoreTop()">${T.topMore}</button>` : '';
+  $('list-container').innerHTML = `<div class="top-list">${rows}${more}</div>`;
+}
+
+async function loadMoreTop() {
+  const key = String(topYear);
+  const state = topCache[key];
+  if (!state || state.loading || !state.hasNext) return;
+  state.loading = true;
+  const btn = document.querySelector('.top-more');
+  if (btn) { btn.textContent = '…'; btn.disabled = true; }
+  try {
+    const { rows, hasNext } = await fetchTop(topYear, state.page + 1);
+    state.rows = state.rows.concat(rows);
+    state.page += 1;
+    state.hasNext = hasNext;
+    if (currentTab === 'TOP' && String(topYear) === key) paintTop();
+  } catch(e) {
+    showToast(T.errPrefix + e.message);
+    if (btn) { btn.textContent = T.topMore; btn.disabled = false; }
+  }
+  state.loading = false;
 }
 
 // ── TABS ──
@@ -988,6 +1106,7 @@ function showToast(msg) {
     if (dt > SWIPE_MAX_MS) return;
 
     const idx = TAB_ORDER.indexOf(currentTab);
+    if (idx === -1) return;   // Top isn't a slice of the list; leave it out of swipes
     let nextIdx;
     if (dx < 0) nextIdx = Math.min(idx + 1, TAB_ORDER.length - 1); // swipe left → next
     else         nextIdx = Math.max(idx - 1, 0);                    // swipe right → prev
@@ -1007,6 +1126,16 @@ function showToast(msg) {
 $('edit-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
 $('info-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeInfoModal(); });
 $('sequel-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSequelModal(); });
+
+// A horizontal strip doesn't take the vertical wheel, so map it across.
+$('top-years').addEventListener('wheel', e => {
+  const el = $('top-years');
+  const d = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+  const max = el.scrollWidth - el.clientWidth;
+  if (!d || max <= 0) return;
+  const next = Math.max(0, Math.min(max, el.scrollLeft + d));
+  if (next !== el.scrollLeft) { e.preventDefault(); el.scrollLeft = next; }
+}, { passive: false });
 document.addEventListener('click', e => {
   if (!e.target.closest('.search-wrap')) $('catalog-results').style.display = 'none';
 });

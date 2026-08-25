@@ -58,6 +58,8 @@
       <button class="tab"        data-tab="PLANNING"  onclick="setTab('PLANNING',this)" data-i18n="status.PLANNING"></button>
       <button class="tab"        data-tab="PAUSED"    onclick="setTab('PAUSED',this)" data-i18n="status.PAUSED"></button>
       <button class="tab"        data-tab="DROPPED"   onclick="setTab('DROPPED',this)" data-i18n="status.DROPPED"></button>
+      <div class="tab-sep"></div>
+      <button class="tab tab-top" data-tab="TOP"       onclick="setTab('TOP',this)" data-i18n="tabTop"></button>
     </div>
   </div>
 
@@ -78,6 +80,11 @@
       <button class="toggle-btn active" id="toggle-group" onclick="toggleGrouping(true)" data-i18n="groupOn"></button>
       <button class="toggle-btn" id="toggle-flat" onclick="toggleGrouping(false)" data-i18n="groupOff"></button>
     </div>
+  </div>
+
+  <div class="top-filters" id="top-filters">
+    <div class="chips" id="top-years"></div>
+    <div class="top-heading" id="top-heading"></div>
   </div>
 
   <main>
