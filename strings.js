@@ -43,6 +43,10 @@ const T = {
   topMore: 'Показати ще',
   topSearching: 'Шукаю…',
   topNotLoaded: n => `Немає серед перших ${n}. Натисніть «Показати ще».`,
+  // trailer
+  trailer: 'Трейлер',
+  trailerOfficial: 'Офіційний трейлер',
+  trailerYouTube: 'YouTube ↗',
   sequelInfo: 'Детальніше',
   // catalog search
   searching: 'Searching…', nothingFound: 'Nothing found',

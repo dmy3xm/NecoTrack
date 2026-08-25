@@ -823,6 +823,7 @@ async function openInfoModal(mediaId) {
             id
             title { romaji english }
             coverImage { large medium extraLarge }
+            trailer { id site thumbnail }
             format status
             startDate { year }
             averageScore genres
@@ -905,6 +906,31 @@ function renderInfoModal(media) {
 
   const anilistLink = `<a class="info-link" href="https://anilist.co/anime/${media.id}" target="_blank" rel="noopener">${T.anilistLink}</a>`;
 
+  // AniList sometimes stores the id with trailing whitespace, which would
+  // corrupt the thumbnail URL. Only YouTube is handled; Dailymotion is rare.
+  // maxresdefault is missing for roughly half of older trailers, and YouTube
+  // answers with a 120x90 grey placeholder rather than an error — so the
+  // fallback has to test the decoded size, not wait for onerror.
+  const tr = media.trailer;
+  const vid = tr && tr.site === 'youtube' && tr.id ? tr.id.trim() : '';
+  const trailerHtml = vid ? `
+    <div class="trailer-section">
+      <div class="field-label">${T.trailer}</div>
+      <div class="trailer-card" onclick="playTrailer('${vid}', this)">
+        <img src="https://i.ytimg.com/vi/${vid}/maxresdefault.jpg"
+             onload="if (this.naturalWidth < 200) { this.onload = null; this.src = 'https://i.ytimg.com/vi/${vid}/hqdefault.jpg'; }"
+             onerror="this.onerror=null; this.src='https://i.ytimg.com/vi/${vid}/hqdefault.jpg'"
+             class="trailer-thumb" loading="lazy" alt="">
+        <div class="trailer-veil"></div>
+        <div class="trailer-play">▶</div>
+        <div class="trailer-label">
+          <span>${T.trailerOfficial}</span>
+          <a href="https://www.youtube.com/watch?v=${vid}" target="_blank" rel="noopener"
+             onclick="event.stopPropagation()">${T.trailerYouTube}</a>
+        </div>
+      </div>
+    </div>` : '';
+
   const descId = 'info-desc-' + media.id;
   const descHtml = media.description
     ? `<div class="info-desc" id="${descId}">${media.description}</div>
@@ -950,6 +976,7 @@ function renderInfoModal(media) {
       ${controlsHtml}
       ${descHtml}
       ${relatedHtml}
+      ${trailerHtml}
     </div>
   `;
 
@@ -959,6 +986,13 @@ function renderInfoModal(media) {
   editBtn.onclick = entry
     ? () => { closeInfoModal(); openModal(allEntries.find(e => e.media.id === media.id)); }
     : null;
+}
+
+// controls=0 keeps YouTube's chrome out of the card; a click still pauses.
+// playsinline stops iOS hijacking into its own fullscreen player.
+function playTrailer(vid, card) {
+  card.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${vid}?autoplay=1&playsinline=1&controls=0&rel=0&iv_load_policy=3"
+    allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
 }
 
 function closeInfoModal() {

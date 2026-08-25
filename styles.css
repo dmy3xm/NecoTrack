@@ -1521,6 +1521,78 @@
     #sequel-modal .modal.multi { max-width: 700px; }
   }
 
+  /* ── TRAILER ──
+     Not an embed until you ask for one: the thumbnail is our own markup, and
+     the player only replaces it on click. overflow:hidden clips YouTube to the
+     card's rounded box so it reads as part of the panel. */
+  .trailer-section { margin-top: 12px; }
+
+  .trailer-card {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    background: var(--surface3);
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .trailer-card:hover { border-color: var(--accent); }
+
+  .trailer-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .trailer-veil {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top,
+      rgba(10,8,6,0.75) 0%, rgba(10,8,6,0.15) 55%, rgba(10,8,6,0) 100%);
+  }
+
+  .trailer-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(10,8,6,0.72);
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 17px;
+    padding-left: 4px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .trailer-card:hover .trailer-play { background: var(--accent); color: var(--bg); }
+
+  .trailer-label {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .trailer-label a { color: var(--accent); text-decoration: none; flex-shrink: 0; }
+
+  .trailer-card iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+
   /* SCORE DISTRIBUTION GRAPH */
   .score-dist {
     display: flex;
@@ -1604,4 +1676,5 @@
       align-content: flex-start;
     }
     .info-col-left > .info-link { order: 1; justify-self: start; }
+    .trailer-section { order: 2; }
   }
