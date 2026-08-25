@@ -617,7 +617,10 @@ async function loadMoreTop() {
 // Desktop needs an explicit affordance: there is no drag with a mouse.
 function scrollYears(dir) {
   const el = $('top-years');
-  el.scrollBy({ left: dir * el.clientWidth * 0.9, behavior: 'smooth' });
+  // The desktop strip is deliberately narrow, so a 90%-of-width step would be
+  // only a few years per click across ~87 of them. Keep a sane floor.
+  const step = Math.max(el.clientWidth * 0.9, 400);
+  el.scrollBy({ left: dir * step, behavior: 'smooth' });
 }
 
 function syncYearArrows() {

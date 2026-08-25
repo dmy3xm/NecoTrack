@@ -315,6 +315,10 @@
   .year-strip { display: flex; align-items: center; gap: 6px; min-width: 0; }
   .year-arrow { display: none; }
   @media (hover: hover) and (pointer: fine) {
+    /* With arrows to page through it, the strip doesn't need the full width —
+       a narrow well reads as a control rather than a band across the page. */
+    .year-strip { max-width: 33%; min-width: 300px; }
+
     .year-arrow {
       display: flex;
       align-items: center;
