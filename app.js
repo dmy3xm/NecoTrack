@@ -922,7 +922,7 @@ function renderInfoModal(media) {
              onerror="this.onerror=null; this.src='https://i.ytimg.com/vi/${vid}/hqdefault.jpg'"
              class="trailer-thumb" loading="lazy" alt="">
         <div class="trailer-veil"></div>
-        <div class="trailer-play">▶</div>
+        <div class="trailer-play"></div>
         <div class="trailer-label">
           <span>${T.trailerOfficial}</span>
           <a href="https://www.youtube.com/watch?v=${vid}" target="_blank" rel="noopener"
@@ -991,11 +991,23 @@ function renderInfoModal(media) {
 // controls=0 keeps YouTube's chrome out of the card; a click still pauses.
 // playsinline stops iOS hijacking into its own fullscreen player.
 function playTrailer(vid, card) {
-  card.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${vid}?autoplay=1&playsinline=1&controls=0&rel=0&iv_load_policy=3"
-    allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+  if (card.querySelector('iframe')) return;
+  // Laid over the thumbnail rather than replacing it, so stopping is a plain
+  // removal and the card is back to its poster with nothing to rebuild.
+  card.insertAdjacentHTML('beforeend',
+    `<iframe src="https://www.youtube-nocookie.com/embed/${vid}?autoplay=1&playsinline=1&controls=0&rel=0&iv_load_policy=3"
+      allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`);
+}
+
+// Removing the iframe is what actually stops playback — hiding the overlay
+// leaves the video running with its audio.
+function stopTrailer() {
+  const f = $('info-body').querySelector('.trailer-card iframe');
+  if (f) f.remove();
 }
 
 function closeInfoModal() {
+  stopTrailer();
   $('info-modal').classList.remove('open');
 }
 
