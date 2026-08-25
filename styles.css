@@ -1691,6 +1691,13 @@
     .info-col-left { margin-bottom: 0; }
   }
 
+  /* A phone in landscape is wide enough for the two-column layout but only
+     ~340px tall, where a 320px cover leaves no room for anything else.
+     Keyed on height, so portrait phones and desktops are untouched. */
+  @media (max-height: 480px) {
+    .info-cover-lg { max-height: 190px; }
+  }
+
   /* Phone: uncropped poster on the left, the compact chips beside it, and
      everything wide (graph, description, related) full width underneath.
      display: contents flattens the two desktop columns into this grid so the

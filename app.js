@@ -1193,7 +1193,9 @@ function showToast(msg) {
     start_url: window.location.pathname,
     display: 'standalone',
     background_color: '#0f0f11', theme_color: '#17171c',
-    orientation: 'portrait',
+    // 'portrait' locks an installed PWA to portrait at the OS level, which also
+    // trapped fullscreen video. The layout is responsive, so let the device decide.
+    orientation: 'any',
     icons: [
       { src: 'logo.png', sizes: '192x192', type: 'image/png' },
       { src: 'logo.png', sizes: '512x512', type: 'image/png' }
