@@ -925,7 +925,7 @@ function renderInfoModal(media) {
         <div class="trailer-play"></div>
         <div class="trailer-label">
           <span>${T.trailerOfficial}</span>
-          <a href="https://www.youtube.com/watch?v=${vid}" target="_blank" rel="noopener"
+          <a href="https://www.youtube.com/watch?v=${vid}&t=0" target="_blank" rel="noopener"
              onclick="event.stopPropagation()">${T.trailerYouTube}</a>
         </div>
       </div>
