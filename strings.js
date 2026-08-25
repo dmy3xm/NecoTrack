@@ -41,6 +41,8 @@ const T = {
   topHeading: label => `Топ ${label}`,
   topSearchPh: 'Пошук на AniList…',
   topMore: 'Показати ще',
+  topSearching: 'Шукаю…',
+  topNotLoaded: n => `Немає серед перших ${n}. Натисніть «Показати ще».`,
   sequelInfo: 'Детальніше',
   // catalog search
   searching: 'Searching…', nothingFound: 'Nothing found',

@@ -310,6 +310,32 @@
   }
   .top-filters.open { display: block; }
 
+  /* Arrows are the desktop affordance — a mouse can't drag the strip. Gated on
+     pointer capability, not width, so an iPad keeps the touch behaviour. */
+  .year-strip { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .year-arrow { display: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .year-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      color: var(--text-dim);
+      font-size: 15px;
+      line-height: 1;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.15s, color 0.15s, opacity 0.15s;
+    }
+    .year-arrow:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .year-arrow:disabled { opacity: 0.3; cursor: default; }
+  }
+
   .chips {
     display: flex;
     gap: 6px;
@@ -369,6 +395,15 @@
     transition: background 0.12s;
   }
   .top-row:hover { background: var(--surface2); }
+  /* brief wash when a search result jumps to its row */
+  .top-row.found { animation: topFound 2s ease-out; }
+  @keyframes topFound {
+    0%, 40% { background: var(--accent-dim); }
+    100%    { background: transparent; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .top-row.found { animation: none; background: var(--accent-dim); }
+  }
 
   .top-rank {
     width: 26px;

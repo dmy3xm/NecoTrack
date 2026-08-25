@@ -237,7 +237,7 @@ async function searchCatalog(query) {
       const inList = listIds.has(m.id);
       const meta = [m.format, m.episodes ? m.episodes+' '+T.epShort : null, m.seasonYear].filter(Boolean).join(' · ');
       html += `
-        <div class="catalog-item" style="cursor:pointer" onclick="openInfoModal(${m.id})">
+        <div class="catalog-item" style="cursor:pointer" onclick="${currentTab === 'TOP' ? `jumpToTop(${m.id})` : `openInfoModal(${m.id})`}">
           <img src="${m.coverImage.medium}" class="catalog-cover" loading="lazy">
           <div class="catalog-info">
             <div class="catalog-title">${title}</div>
@@ -504,6 +504,7 @@ async function quickPlus(entryId) {
 // The current year is the newest worth offering — next year has nothing scored.
 // Rebuilt per render so a session left open across New Year still picks it up.
 const TOP_FIRST_YEAR = 1940;
+const TOP_FIND_AHEAD = 300;   // how far past the loaded rows a search may walk
 function topYears() {
   const out = ['all'];
   for (let y = new Date().getFullYear(); y >= TOP_FIRST_YEAR; y--) out.push(y);
@@ -549,6 +550,7 @@ function renderTopYears() {
   // the strip is long now — don't leave the active year scrolled out of sight
   const active = $('top-years').querySelector('.chip.on');
   if (active) active.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  syncYearArrows();
 }
 
 function setTopYear(y) {
@@ -578,7 +580,7 @@ function paintTop() {
   const state = topCache[String(topYear)];
   if (!state) return;
   const rows = state.rows.map((m, i) => `
-    <div class="top-row" onclick="openInfoModal(${m.id})">
+    <div class="top-row" data-id="${m.id}" onclick="openInfoModal(${m.id})">
       <div class="top-rank${i < 3 ? ' top3' : ''}">${i + 1}</div>
       <img src="${m.coverImage.medium}" class="top-cover" loading="lazy">
       <div class="top-info">
@@ -610,6 +612,63 @@ async function loadMoreTop() {
     if (btn) { btn.textContent = T.topMore; btn.disabled = false; }
   }
   state.loading = false;
+}
+
+// Desktop needs an explicit affordance: there is no drag with a mouse.
+function scrollYears(dir) {
+  const el = $('top-years');
+  el.scrollBy({ left: dir * el.clientWidth * 0.9, behavior: 'smooth' });
+}
+
+function syncYearArrows() {
+  const el = $('top-years');
+  const max = el.scrollWidth - el.clientWidth;
+  $('year-prev').disabled = el.scrollLeft <= 1;
+  $('year-next').disabled = el.scrollLeft >= max - 1;
+}
+
+function flashTopRow(row) {
+  row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  row.classList.add('found');
+  setTimeout(() => row.classList.remove('found'), 2000);
+}
+
+// Picking a search result on Top moves the ranking to that title. A rank can't
+// be queried (pageInfo.total is a fixed 5000), so the only way to locate one is
+// to walk pages — bounded here to TOP_FIND_AHEAD past whatever is already loaded.
+async function jumpToTop(mediaId) {
+  closeCatalog();
+  $('search-input').value = '';
+  if (topYear !== 'all') { topYear = 'all'; await renderTop(); }
+
+  const state = topCache['all'];
+  if (!state) return;
+  const hit = () => document.querySelector(`.top-row[data-id="${mediaId}"]`);
+  let row = hit();
+  if (row) { flashTopRow(row); return; }
+
+  const limit = state.rows.length + TOP_FIND_AHEAD;
+  const btn = document.querySelector('.top-more');
+  if (btn) { btn.textContent = T.topSearching; btn.disabled = true; }
+
+  while (!row && state.hasNext && state.rows.length < limit) {
+    let batch;
+    try {
+      batch = await fetchTop('all', state.page + 1);
+    } catch(e) {
+      showToast(T.errPrefix + e.message);
+      break;
+    }
+    if (currentTab !== 'TOP' || topYear !== 'all') return;   // user moved on
+    state.rows = state.rows.concat(batch.rows);
+    state.page += 1;
+    state.hasNext = batch.hasNext;
+    paintTop();
+    row = hit();
+  }
+
+  if (row) flashTopRow(row);
+  else showToast(T.topNotLoaded(state.rows.length));
 }
 
 // ── TABS ──
@@ -1128,6 +1187,7 @@ $('info-modal').addEventListener('click', e => { if (e.target === e.currentTarge
 $('sequel-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSequelModal(); });
 
 // A horizontal strip doesn't take the vertical wheel, so map it across.
+$('top-years').addEventListener('scroll', syncYearArrows, { passive: true });
 $('top-years').addEventListener('wheel', e => {
   const el = $('top-years');
   const d = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
