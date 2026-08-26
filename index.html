@@ -179,6 +179,23 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="top-find-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="modal-title" data-i18n="topFindTitle">—</div>
+        <div class="modal-subtitle" id="top-find-name">—</div>
+      </div>
+      <button class="btn-close" onclick="closeTopFind()">✕</button>
+    </div>
+    <div class="modal-body"><p class="top-find-text" id="top-find-text">—</p></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeTopFind()" data-i18n="close">—</button>
+      <button class="btn-save" id="top-find-more" onclick="topFindSearchMore()">—</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script src="strings.js"></script>

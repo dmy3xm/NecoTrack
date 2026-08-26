@@ -198,6 +198,7 @@ function fuzzyMatch(query, target) {
 // ── CATALOG SEARCH ──
 let catalogTimer = null;
 let lastCatalogQuery = '';
+let lastCatalogResults = [];
 
 function onSearchInput(val) {
   if (currentTab !== 'TOP') renderList();
@@ -210,6 +211,7 @@ function onSearchInput(val) {
 async function searchCatalog(query) {
   if (query === lastCatalogQuery) return;
   lastCatalogQuery = query;
+  lastCatalogResults = [];
   const drop = $('catalog-results');
   drop.style.display = 'block';
   drop.innerHTML = `<div class="catalog-loading">${T.searching}</div>`;
@@ -228,36 +230,48 @@ async function searchCatalog(query) {
         }
       }
     `, { search: query });
-    const results = data.Page.media;
-    if (!results.length) { drop.innerHTML = `<div class="catalog-loading">${T.nothingFound}</div>`; return; }
-    const listIds = new Set(allEntries.map(e => e.media.id));
-    let html = `<div class="search-mode-hint"><span>${T.catalogResults}</span><button onclick="closeCatalog()">✕</button></div>`;
-    for (const m of results) {
-      const title = m.title.english || m.title.romaji;
-      const inList = listIds.has(m.id);
-      const meta = [m.format, m.episodes ? m.episodes+' '+T.epShort : null, m.seasonYear].filter(Boolean).join(' · ');
-      html += `
-        <div class="catalog-item" style="cursor:pointer" onclick="${currentTab === 'TOP' ? `jumpToTop(${m.id})` : `openInfoModal(${m.id})`}">
-          <img src="${m.coverImage.medium}" class="catalog-cover" loading="lazy">
-          <div class="catalog-info">
-            <div class="catalog-title">${title}</div>
-            <div class="catalog-meta">${meta}</div>
-          </div>
-          <span onclick="event.stopPropagation()">${inList
-            ? `<span class="catalog-add in-list">${T.catalogInList}</span>`
-            : `<button class="catalog-add" onclick="addToList(${m.id}, event)">${T.catalogAdd}</button>`
-          }</span>
-        </div>
-      `;
-    }
-    drop.innerHTML = html;
+    lastCatalogResults = data.Page.media;
+    paintCatalog();
   } catch(e) {
     drop.innerHTML = `<div class="catalog-loading">${T.errPrefix}${e.message}</div>`;
   }
 }
 
+// Split from the fetch so that changing the year on Top can re-mark the
+// wrong-year rows from the results already in hand, without a second request.
+function paintCatalog() {
+  const drop = $('catalog-results');
+  const results = lastCatalogResults;
+  if (!results.length) { drop.innerHTML = `<div class="catalog-loading">${T.nothingFound}</div>`; return; }
+  const listIds = new Set(allEntries.map(e => e.media.id));
+  const onTop = currentTab === 'TOP';
+  const year = onTop && topYear !== 'all' ? Number(topYear) : null;
+  let html = `<div class="search-mode-hint"><span>${T.catalogResults}</span><button onclick="closeCatalog()">✕</button></div>`;
+  for (const m of results) {
+    const title = m.title.english || m.title.romaji;
+    const inList = listIds.has(m.id);
+    const meta = [m.format, m.episodes ? m.episodes+' '+T.epShort : null, m.seasonYear].filter(Boolean).join(' · ');
+    html += `
+      <div class="catalog-item" style="cursor:pointer" onclick="${onTop ? `jumpToTop(${m.id})` : `openInfoModal(${m.id})`}">
+        <img src="${m.coverImage.medium}" class="catalog-cover" loading="lazy">
+        <div class="catalog-info">
+          <div class="catalog-title">${title}</div>
+          <div class="catalog-meta">${meta}</div>
+          ${year !== null && m.seasonYear !== year ? `<div class="catalog-warn">${T.topOtherYear(m.seasonYear)}</div>` : ''}
+        </div>
+        <span onclick="event.stopPropagation()">${inList
+          ? `<span class="catalog-add in-list">${T.catalogInList}</span>`
+          : `<button class="catalog-add" onclick="addToList(${m.id}, event)">${T.catalogAdd}</button>`
+        }</span>
+      </div>
+    `;
+  }
+  drop.innerHTML = html;
+}
+
 function closeCatalog() {
   lastCatalogQuery = '';
+  lastCatalogResults = [];
   const drop = $('catalog-results');
   drop.style.display = 'none';
   drop.innerHTML = '';
@@ -556,6 +570,9 @@ function renderTopYears() {
 function setTopYear(y) {
   topYear = y;
   renderTop();
+  // the wrong-year note depends on which year is selected, so repaint an open
+  // dropdown — from the results already fetched, not a second request.
+  if (lastCatalogResults.length) paintCatalog();
 }
 
 async function renderTop() {
@@ -639,13 +656,22 @@ function flashTopRow(row) {
 // Picking a search result on Top moves the ranking to that title. A rank can't
 // be queried (pageInfo.total is a fixed 5000), so the only way to locate one is
 // to walk pages — bounded here to TOP_FIND_AHEAD past whatever is already loaded.
-async function jumpToTop(mediaId) {
+async function jumpToTop(mediaId, picked) {
+  picked = picked || lastCatalogResults.find(m => m.id === mediaId) || null;
   closeCatalog();
   $('search-input').value = '';
-  if (topYear !== 'all') { topYear = 'all'; await renderTop(); }
 
-  const state = topCache['all'];
+  const key = String(topYear);
+  const state = topCache[key];
   if (!state) return;
+
+  // A release from another year cannot be in this ranking at all, so walking
+  // pages for it would spend requests to learn nothing. Say which year it is
+  // and leave the switch to the user.
+  if (picked && topYear !== 'all' && picked.seasonYear !== Number(topYear)) {
+    showTopFind(picked, 'year', state.rows.length);
+    return;
+  }
   const hit = () => document.querySelector(`.top-row[data-id="${mediaId}"]`);
   let row = hit();
   if (row) { flashTopRow(row); return; }
@@ -657,12 +683,12 @@ async function jumpToTop(mediaId) {
   while (!row && state.hasNext && state.rows.length < limit) {
     let batch;
     try {
-      batch = await fetchTop('all', state.page + 1);
+      batch = await fetchTop(topYear, state.page + 1);
     } catch(e) {
       showToast(T.errPrefix + e.message);
       break;
     }
-    if (currentTab !== 'TOP' || topYear !== 'all') return;   // user moved on
+    if (currentTab !== 'TOP' || String(topYear) !== key) return;   // user moved on
     state.rows = state.rows.concat(batch.rows);
     state.page += 1;
     state.hasNext = batch.hasNext;
@@ -670,8 +696,39 @@ async function jumpToTop(mediaId) {
     row = hit();
   }
 
-  if (row) flashTopRow(row);
-  else showToast(T.topNotLoaded(state.rows.length));
+  // paintTop() rebuilds the button, but a walk that never looped — nothing left
+  // to fetch, or already deep enough — has to hand it back itself.
+  const stale = document.querySelector('.top-more');
+  if (stale && stale.disabled) { stale.textContent = T.topMore; stale.disabled = false; }
+
+  if (row) { flashTopRow(row); return; }
+  // Running out of pages means the whole ranking was walked, so searching
+  // further is not on offer — the title is simply unscored and not ranked.
+  showTopFind(picked, state.hasNext ? 'deeper' : 'unranked', state.rows.length);
+}
+
+// A toast was too easy to miss for something that needs a decision, so the
+// dead end asks instead: give up, or spend another TOP_FIND_AHEAD pages.
+let topFindMedia = null;
+function showTopFind(media, reason, loaded) {
+  topFindMedia = media;
+  $('top-find-name').textContent = media ? getTitle(media) : '';
+  $('top-find-text').textContent =
+    reason === 'year' ? T.topFindOtherYear(media.seasonYear, topYear)
+    : reason === 'unranked' ? T.topFindUnranked
+    : T.topFindDeeper(loaded);
+  const more = $('top-find-more');
+  more.textContent = T.topFindMore(TOP_FIND_AHEAD);
+  more.style.display = reason === 'deeper' ? '' : 'none';
+  $('top-find-modal').classList.add('open');
+}
+
+function closeTopFind() { $('top-find-modal').classList.remove('open'); }
+
+function topFindSearchMore() {
+  const m = topFindMedia;
+  closeTopFind();
+  if (m) jumpToTop(m.id, m);
 }
 
 // ── TABS ──
@@ -1264,6 +1321,7 @@ function showToast(msg) {
 $('edit-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
 $('info-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeInfoModal(); });
 $('sequel-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSequelModal(); });
+$('top-find-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeTopFind(); });
 
 // A horizontal strip doesn't take the vertical wheel, so map it across.
 $('top-years').addEventListener('scroll', syncYearArrows, { passive: true });

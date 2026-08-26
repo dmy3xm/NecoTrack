@@ -564,6 +564,18 @@
     margin-top: 1px;
   }
 
+  .catalog-warn {
+    font-size: 11px;
+    color: var(--red);
+    margin-top: 1px;
+  }
+
+  .top-find-text {
+    font-size: 13.5px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
   .catalog-add {
     background: var(--accent-dim);
     border: 1px solid var(--accent);
