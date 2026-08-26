@@ -189,6 +189,34 @@ function getTitle(media) {
   return t.english || t.romaji;
 }
 
+// AniList fills year, month and day independently, so a start date is often
+// partial — an unaired title regularly has a year and nothing else. Each level
+// is formatted with only what is actually known rather than inventing a day.
+function releaseDateText(d) {
+  if (!d || !d.year) return T.dateUnknown;
+  const parts = d.month
+    ? (d.day ? { day: 'numeric', month: 'long', year: 'numeric' } : { month: 'long', year: 'numeric' })
+    : { year: 'numeric' };
+  return new Date(d.year, (d.month || 1) - 1, d.day || 1).toLocaleDateString(T.locale, parts);
+}
+
+// The unaired-poster treatment, in one place so every grid that shows covers
+// wears the same one: the status covers the art and clears on hover, and the
+// release date sits under the poster, revealed by hovering it. Both are empty
+// for anything already aired — only an unaired title carries a date.
+const isUnaired = m => m.status === 'NOT_YET_RELEASED';
+
+function unairedBadge(m) {
+  return isUnaired(m) ? `<div class="cover-status">${T.mediaStatus[m.status]}</div>` : '';
+}
+
+// Sits inside the poster, mirroring the status badge at the other end, so the
+// card keeps exactly the shape every other card has. Both clear together on
+// hover to hand the art back.
+function unairedDate(m) {
+  return isUnaired(m) ? `<div class="poster-date">${esc(releaseDateText(m.startDate))}</div>` : '';
+}
+
 function getSeriesTitle(group) {
   // A franchise name is what a group header wants, and it is exactly what TMDB
   // stores — so this replaces the "Season N" regex below whenever it has one.
@@ -657,12 +685,40 @@ async function loadMoreTop() {
 }
 
 // Desktop needs an explicit affordance: there is no drag with a mouse.
+// Paging by a fixed step overshot the visible strip and stepped straight over
+// years that were never on screen, so a click moves by whole chips instead: the
+// first year that is even partly cut off becomes the first fully visible one.
+// Nothing is skipped in either direction and no year is left half-drawn.
 function scrollYears(dir) {
   const el = $('top-years');
-  // The desktop strip is deliberately narrow, so a 90%-of-width step would be
-  // only a few years per click across ~87 of them. Keep a sane floor.
-  const step = Math.max(el.clientWidth * 0.9, 400);
-  el.scrollBy({ left: dir * step, behavior: 'smooth' });
+  const chips = [...el.children];
+  if (!chips.length) return;
+
+  const view = el.clientWidth;
+  const strip = el.getBoundingClientRect();
+  // Chip edges in the strip's own scroll coordinates, so gaps and padding are
+  // already accounted for and nothing depends on where offsetParent lands.
+  const edges = chips.map(c => {
+    const box = c.getBoundingClientRect();
+    return { start: box.left - strip.left + el.scrollLeft, width: box.width };
+  });
+
+  // Anchor on the last year that *begins* inside the view rather than the first
+  // one that is cut off: a chip overflowing by a fraction of a pixel would slip
+  // under any "is it clipped" tolerance and be stepped over. This way a clipped
+  // year becomes whole and an already-whole one merely repeats, so consecutive
+  // pages always overlap by a chip and can never leave a gap between them.
+  let target;
+  if (dir > 0) {
+    const anchor = [...edges].reverse().find(e => e.start < el.scrollLeft + view - 1);
+    target = anchor && anchor.start > el.scrollLeft + 1 ? anchor.start : el.scrollLeft + view;
+  } else {
+    const anchor = edges.find(e => e.start + e.width > el.scrollLeft + 1);
+    const aligned = anchor ? anchor.start + anchor.width - view : el.scrollLeft - view;
+    target = aligned < el.scrollLeft - 1 ? aligned : el.scrollLeft - view;
+  }
+  const max = Math.max(0, el.scrollWidth - view);
+  el.scrollTo({ left: Math.max(0, Math.min(target, max)), behavior: 'smooth' });
 }
 
 function syncYearArrows() {
@@ -894,11 +950,12 @@ async function openInfoModal(mediaId) {
   $('info-title').textContent = '—';
   $('info-subtitle').textContent = '';
   body.innerHTML = `<div class="loading"><div class="spinner"></div><div>${T.loading}</div></div>`;
+  raiseModal(overlay);
   overlay.classList.add('open');
 
   try {
     let media = mediaCache[mediaId];
-    if (!media || !media.stats) {
+    if (!media || !media.studios) {
       const data = await gql(`
         query($id: Int) {
           Media(id: $id) {
@@ -911,6 +968,7 @@ async function openInfoModal(mediaId) {
             averageScore genres
             description(asHtml: false)
             stats { scoreDistribution { score amount } }
+            studios { edges { isMain node { id name } } }
             relations {
               edges {
                 relationType(version: 2)
@@ -985,6 +1043,18 @@ function renderInfoModal(media) {
   const cx = media.coverImage;
   const coverSrc = cx.large || cx.medium;
   const coverSet = [cx.large && `${cx.large} 230w`, cx.extraLarge && `${cx.extraLarge} 460w`].filter(Boolean).join(', ');
+
+  // isMain separates the animation studio from producers and licensors, which
+  // share the same connection and are not what "made by" means here.
+  const studios = (media.studios?.edges || []).filter(e => e.isMain).map(e => e.node);
+  const studioHtml = studios.length ? `<div class="field-group studio-group">
+      <div class="field-label">${studios.length > 1 ? T.studios : T.studio}</div>
+      <div class="studio-row">${studios.map(s => `
+        <button class="studio-chip" data-sid="${s.id}" title="${esc(s.name)}" onclick="openStudioModal(${s.id})">
+          <span class="studio-mono">${esc(studioMonogram(s.name))}</span>
+          <span class="studio-name">${esc(s.name)}</span>
+        </button>`).join('')}</div>
+    </div>` : '';
 
   const anilistLink = `<a class="info-link" href="https://anilist.co/anime/${media.id}" target="_blank" rel="noopener">${T.anilistLink}</a>`;
 
@@ -1063,12 +1133,15 @@ function renderInfoModal(media) {
         ${genres}
       </div>
       ${scoreDistGraph(media.stats?.scoreDistribution)}
+      ${studioHtml}
       ${controlsHtml}
       ${descHtml}
       ${relatedHtml}
       ${trailerHtml}
     </div>
   `;
+
+  studios.forEach(s => hydrateStudioLogo($('info-body').querySelector(`.studio-chip[data-sid="${s.id}"]`), s));
 
   // Editing is only offered for titles already on the list.
   const editBtn = $('info-edit-btn');
@@ -1135,6 +1208,242 @@ function toggleInfoDesc(id, btn) {
   btn.textContent = el.classList.contains('expanded') ? T.showLess : T.showMore;
 }
 
+// ── STUDIO ──
+// AniList has no studio artwork of any kind — no logo, no image field anywhere
+// on the type — so logos come from Wikidata's P154, falling back to Wikipedia's
+// lead image. Key-free, and the answer — a miss included — is kept in
+// localStorage, so any given studio is looked up exactly once ever.
+function studioMonogram(name) {
+  const w = name.split(/[\s.·]+/).filter(Boolean);
+  // One word gives one initial, which reads as nothing — MAPPA deserves "MA".
+  return (w.length > 1 ? w[0][0] + w[1][0] : (w[0] || '?').slice(0, 2)).toUpperCase();
+}
+
+const LOGO_CACHE_KEY = 'necotrack_studio_logos';
+let studioLogoCache = {};
+try {
+  const saved = JSON.parse(localStorage.getItem(LOGO_CACHE_KEY)) || {};
+  // Entries written in an earlier shape are dropped rather than migrated.
+  for (const [id, file] of Object.entries(saved)) {
+    if (typeof file === 'string') studioLogoCache[id] = file;
+  }
+} catch(e) {}
+
+const WD_API = 'https://www.wikidata.org/w/api.php?format=json&origin=*&';
+const WP_API = 'https://en.wikipedia.org/w/api.php?format=json&origin=*&';
+const wikiJson = url => fetch(url).then(r => r.json());
+const commonsUrl = file =>
+  `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=240`;
+
+// A studio name is rarely unique and the studio rarely ranks first: searching
+// "OLM" puts the Czech city Olomouc on top, "Bones" a bone, "Madhouse" a
+// psychiatric hospital — and the city has a logo, so taking the first hit with
+// one put Olomouc's crest on an anime. Matching the description is the fix.
+const STUDIO_DESC = /anim|studio|production|entertainment|media/i;
+// Those words also describe works: "Passione" is an anime studio, a Bocelli
+// album and two films, and "studio album" matches on `studio`. Dropping works
+// outright stops one of them lending its cover art to a studio.
+const NOT_STUDIO = /album|song|single|film directed|documentary|novel|manga|video game|magazine|given name|family name/i;
+
+async function fetchWikidataLogo(name) {
+  const found = await wikiJson(WD_API + 'action=wbsearchentities&language=en&limit=7&search=' + encodeURIComponent(name));
+  const rank = c => /anim/i.test(c.description || '') ? 0 : 1;   // "Japanese animation studio" first
+  const candidates = (found.search || [])
+    .filter(c => STUDIO_DESC.test(c.description || '') && !NOT_STUDIO.test(c.description || ''))
+    .sort((a, b) => rank(a) - rank(b));
+  for (const cand of candidates) {
+    const claims = await wikiJson(WD_API + 'action=wbgetclaims&property=P154&entity=' + cand.id);
+    const file = claims.claims?.P154?.[0]?.mainsnak?.datavalue?.value;
+    if (file) return commonsUrl(file);
+  }
+  return '';
+}
+
+// Wikidata holds no logo for a good number of studios, so English Wikipedia is
+// asked next. Its search is fuzzy enough to answer "PIERROT FILMS" with Studio
+// Pierrot, so whatever page it lands on has to be about the studio asked for.
+const wpTitleMatches = (asked, got) => {
+  const norm = t => t.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const [a, b] = [norm(asked), norm(got)];
+  return !!a && !!b && (b.includes(a) || a.includes(b));
+};
+
+async function findWikipediaArticle(name) {
+  const res = await wikiJson(WP_API + 'action=query&list=search&srlimit=1&srsearch=' +
+    encodeURIComponent(name + ' anime studio'));
+  const title = res.query?.search?.[0]?.title;
+  return title && wpTitleMatches(name, title) ? title : '';
+}
+
+// The infobox names its logo outright, which beats every guess from a file
+// name: it finds Studio Pierrot's StudioPierrot2025.jpg and Tatsunoko's
+// TatsunokoPro2014.svg, neither of which says "logo" anywhere. Fair-use logos
+// live on en.wikipedia rather than Commons, so the URL is built there.
+async function fetchInfoboxLogo(title) {
+  const res = await wikiJson(WP_API + 'action=parse&prop=wikitext&section=0&page=' + encodeURIComponent(title));
+  const wikitext = res.parse?.wikitext?.['*'] || '';
+  // Anchored to `| logo =` so logo_size and logo_caption don't match.
+  const found = wikitext.match(/^\s*\|\s*logo\s*=\s*(?:\[\[)?(?:File:|Image:)?\s*([^\n|\]}]+?)\s*$/im);
+  return found ? `https://en.wikipedia.org/wiki/Special:FilePath/${encodeURIComponent(found[1])}?width=240` : '';
+}
+
+// Last resort for a page with no infobox logo, like Manglobe's. The lead image
+// is as often a photo of the head office — on Bibury's page it is a photo of
+// *Gainax's* office — so it is taken only when the file name says logo.
+async function fetchLeadImageLogo(title) {
+  const res = await wikiJson(WP_API + 'action=query&prop=pageimages&piprop=original&titles=' + encodeURIComponent(title));
+  const src = Object.values(res.query?.pages || {})[0]?.original?.source;
+  if (!src) return '';
+  return /logo/i.test(decodeURIComponent(src.split('/').pop())) ? src : '';
+}
+
+async function fetchStudioLogo(name) {
+  const fromWikidata = await fetchWikidataLogo(name);
+  if (fromWikidata) return fromWikidata;
+  const title = await findWikipediaArticle(name);
+  if (!title) return '';
+  return (await fetchInfoboxLogo(title)) || (await fetchLeadImageLogo(title));
+  // '' is cached as a miss, so a studio without one is never asked twice
+}
+
+// Nothing waits on Wikidata: the monogram is already on screen and the logo
+// swaps in behind it, so a slow or failed lookup just leaves the monogram.
+async function hydrateStudioLogo(host, studio) {
+  if (!host) return;
+  // studio-logos.js stays supported as an override and wins over the lookup.
+  const override = typeof STUDIO_LOGOS !== 'undefined' ? STUDIO_LOGOS[studio.id] : undefined;
+  let file = override !== undefined ? override : studioLogoCache[studio.id];
+  if (file === undefined) {
+    try { file = await fetchStudioLogo(studio.name); } catch(e) { return; }
+    studioLogoCache[studio.id] = file;
+    try { localStorage.setItem(LOGO_CACHE_KEY, JSON.stringify(studioLogoCache)); } catch(e) {}
+  }
+  if (!file || !host.isConnected) return;
+
+  const img = new Image();
+  img.className = 'studio-logo-img';
+  img.alt = studio.name;
+  // Only shown once it has actually decoded — a broken file leaves the monogram
+  // rather than a gap where a logo should be.
+  img.onload = () => {
+    if (!host.isConnected) return;
+    host.appendChild(img);
+    host.classList.add('has-logo');
+  };
+  img.src = file;
+}
+
+// Info → studio → info can nest, so the newest overlay is bumped on top and
+// closing it uncovers the one it was opened from. Reset while none are open
+// keeps the counter from ever climbing past the toast.
+let modalZ = 200;
+function raiseModal(el) {
+  if (!document.querySelector('.modal-overlay.open')) modalZ = 200;
+  el.style.zIndex = ++modalZ;
+}
+
+const STUDIO_PER_PAGE = 25;  // the connection's own cap; asking for more silently returns 25
+let studioState = { id: 0, name: '', page: 0, hasNext: false, items: [], loading: false };
+
+async function openStudioModal(studioId) {
+  const overlay = $('studio-modal');
+  studioState = { id: studioId, name: '', page: 0, hasNext: false, items: [], loading: false };
+  $('studio-title').textContent = '—';
+  $('studio-subtitle').textContent = '';
+  $('studio-logo').className = 'studio-logo-wrap';
+  $('studio-logo').innerHTML = '';
+  $('studio-body').innerHTML = `<div class="loading"><div class="spinner"></div><div>${T.loading}</div></div>`;
+  raiseModal(overlay);
+  overlay.classList.add('open');
+  await loadStudioPage();
+}
+
+async function loadStudioPage() {
+  if (studioState.loading || !studioState.id) return;
+  studioState.loading = true;
+  const moreBtn = $('studio-more');
+  if (moreBtn) { moreBtn.textContent = T.topSearching; moreBtn.disabled = true; }
+  try {
+    const data = await gql(`
+      query($id: Int, $page: Int, $perPage: Int) {
+        Studio(id: $id) {
+          id name siteUrl
+          media(sort: [START_DATE_DESC], isMain: true, page: $page, perPage: $perPage) {
+            pageInfo { hasNextPage }
+            nodes {
+              id
+              title { romaji english native }
+              coverImage { large medium }
+              format status averageScore
+              startDate { year month day }
+            }
+          }
+        }
+      }
+    `, { id: studioState.id, page: studioState.page + 1, perPage: STUDIO_PER_PAGE });
+
+    const st = data.Studio;
+    studioState.name = st.name;
+    studioState.page++;
+    studioState.hasNext = !!st.media.pageInfo.hasNextPage;
+    studioState.items.push(...st.media.nodes);
+    $('studio-link').href = st.siteUrl || `https://anilist.co/studio/${st.id}`;
+    renderStudioModal();
+  } catch(e) {
+    $('studio-body').innerHTML = `<div class="empty-state"><div>${T.errPrefix}${esc(e.message)}</div></div>`;
+  } finally {
+    studioState.loading = false;
+  }
+}
+
+function renderStudioModal() {
+  const st = studioState;
+  $('studio-title').textContent = st.name;
+  const logoHost = $('studio-logo');
+  logoHost.className = 'studio-logo-wrap';
+  logoHost.title = st.name;
+  logoHost.innerHTML = `<span class="studio-mono is-lg">${esc(studioMonogram(st.name))}</span>`;
+  hydrateStudioLogo(logoHost, { id: st.id, name: st.name });
+
+  // pageInfo.total lies on this connection the same way it does on Page —
+  // it answered 500, then 475, and page 20 of a claimed lastPage 20 was empty.
+  // Only hasNextPage is trustworthy, so the count shown is what actually loaded.
+  const shown = st.items.length;
+  $('studio-subtitle').textContent = `${T.studioWorks} · ${T.studioCount(shown)}`;
+
+  if (!shown) {
+    $('studio-body').innerHTML = `<div class="empty-state"><div>${T.studioNone}</div></div>`;
+    return;
+  }
+
+  const listIds = new Set(allEntries.map(e => e.media.id));
+  const cards = st.items.map(m => {
+    const meta = [T.format[m.format] || m.format, m.startDate?.year].filter(Boolean).join(' · ');
+    const score = m.averageScore
+      ? `<span class="studio-card-score">★ ${(m.averageScore / 10).toFixed(1)}</span>` : '';
+    const badge = listIds.has(m.id)
+      ? `<span class="studio-card-badge">${T.inList}</span>` : '';
+    return `<div class="studio-card" onclick="openInfoModal(${m.id})">
+      <div class="studio-card-art">
+        <img src="${m.coverImage.large || m.coverImage.medium}" class="studio-card-cover" loading="lazy" alt="">
+        ${unairedBadge(m)}${unairedDate(m)}
+        ${badge}${score}
+      </div>
+      <div class="studio-card-name">${esc(getTitle(m))}</div>
+      <div class="studio-card-meta">${meta}</div>
+    </div>`;
+  }).join('');
+
+  const more = st.hasNext
+    ? `<button class="btn-cancel studio-more" id="studio-more" onclick="loadStudioPage()">${T.topMore}</button>`
+    : '';
+  $('studio-body').innerHTML = `<div class="studio-grid">${cards}</div>${more}`;
+}
+
+function closeStudioModal() {
+  $('studio-modal').classList.remove('open');
+}
+
 // ── SEQUEL SUGGESTION ──
 // Fired right after an entry becomes COMPLETED: offer its direct sequels for Planning.
 // The list query only carries relation ids, so titles/covers need one extra fetch.
@@ -1150,7 +1459,7 @@ async function maybeSuggestSequel(entry) {
         Page(perPage: 10) {
           media(id_in: $ids, type: ANIME) {
             id title { romaji english } coverImage { medium large }
-            format episodes status startDate { year }
+            format episodes status startDate { year month day }
           }
         }
       }
@@ -1168,7 +1477,7 @@ function renderSequelModal(sourceTitle, list) {
   const noBtn = `<button class="btn-sequel-no" onclick="closeSequelModal()">${T.sequelNo}</button>`;
   const cards = list.map(m => {
     // An unaired sequel wears its status on the poster instead of the meta line.
-    const unreleased = m.status === 'NOT_YET_RELEASED';
+    const unreleased = isUnaired(m);
     const meta = [
       T.format[m.format] || m.format,
       unreleased ? '' : (T.mediaStatus[m.status] || m.status),
@@ -1180,7 +1489,7 @@ function renderSequelModal(sourceTitle, list) {
         <div class="sequel-card-main">
           <div class="sequel-cover-link" onclick="openInfoModal(${m.id})">
             <img src="${m.coverImage.large || m.coverImage.medium}" class="sequel-cover" loading="lazy">
-            ${unreleased ? `<div class="sequel-cover-badge">${T.mediaStatus[m.status]}</div>` : ''}
+            ${unairedBadge(m)}${unairedDate(m)}
           </div>
           <div class="sequel-body">
             <div class="sequel-text">
@@ -1355,6 +1664,7 @@ $('edit-modal').addEventListener('click', e => { if (e.target === e.currentTarge
 $('info-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeInfoModal(); });
 $('sequel-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSequelModal(); });
 $('top-find-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeTopFind(); });
+$('studio-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeStudioModal(); });
 
 // A horizontal strip doesn't take the vertical wheel, so map it across.
 $('top-years').addEventListener('scroll', syncYearArrows, { passive: true });

@@ -64,6 +64,15 @@ const T = {
   completed: 'Completed! 🎉', loadFailed: 'Failed to load: ', errPrefix: 'Error: ',
   confirmDelete: title => `Видалити «${title}» зі списку? Цю дію не можна скасувати.`,
   toastProgress: (p, eps) => `${p}${eps ? '/'+eps : ''} episodes`,
+  // dates
+  locale: 'uk-UA',
+  dateUnknown: 'Дата невідома',
+  // studio
+  studio: 'Студія', studios: 'Студії',
+  studioWorks: 'Аніме студії',
+  studioAnilist: 'Студія на AniList ↗',
+  studioCount: n => `${n} тайтлів`,
+  studioNone: 'Тайтлів не знайдено',
   // enum → label maps (used by both HTML data-i18n and JS)
   status:      { CURRENT:'Дивлюсь', COMPLETED:'Переглянуто', PLANNING:'Планую', PAUSED:'Призупинено', DROPPED:'Закинуто' },
   relation:    { SEQUEL:'Сіквел', PREQUEL:'Приквел', SPIN_OFF:'Спін-оф', SIDE_STORY:'Побічна історія',

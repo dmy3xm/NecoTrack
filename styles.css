@@ -1391,6 +1391,148 @@
     flex-shrink: 0;
   }
 
+  /* STUDIO */
+  .studio-row { display: flex; flex-wrap: wrap; gap: 7px; }
+  .studio-group { margin-bottom: 10px; }
+
+  .studio-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px 4px 4px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .studio-chip:hover { border-color: var(--accent); background: var(--accent-dim); }
+
+  /* The monogram tile, shown until a logo resolves and left in place when none
+     does. .is-lg is the studio modal's header version of the same mark. */
+  .studio-mono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--surface3);
+    color: var(--accent);
+    font-family: 'Nunito', sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+  }
+  .studio-mono.is-lg {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 15px;
+  }
+
+  /* Every logo is dark against a dark surface, so all of them are turned white.
+     This deliberately drops the brand colour: a light plate behind them keeps it
+     but puts white cards in a dark UI, and invert+hue-rotate only yields pastel.
+
+     Why not a plain brightness(0) invert(1): Wikipedia's fair-use logos are
+     often opaque JPEGs — a white rectangle with dark art on it — and whitening
+     those paints a solid white block. Inverting to greyscale and compositing
+     with `screen` drops whatever is darkest to the backdrop, so an opaque white
+     ground falls away and only the mark itself lights up. Transparent PNG and
+     SVG come out the same as before. */
+  .studio-logo-img {
+    display: block;
+    height: 18px;
+    width: auto;
+    max-width: 160px;
+    object-fit: contain;
+    filter: grayscale(1) invert(1) contrast(1.5) brightness(1.15);
+    mix-blend-mode: screen;
+  }
+
+  /* A wordmark already says the name, so it replaces the monogram and the
+     label both, rather than sitting next to a second copy of the name. */
+  .has-logo > .studio-mono, .has-logo > .studio-name { display: none; }
+  .studio-chip.has-logo { padding: 6px 13px; gap: 0; }
+
+  .studio-logo-wrap { flex-shrink: 0; display: flex; align-items: center; }
+  .studio-logo-wrap .studio-logo-img { height: 30px; max-width: 210px; }
+
+  #studio-modal .modal { max-width: 760px; }
+
+  .studio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+    gap: 14px 12px;
+  }
+
+  .studio-card { cursor: pointer; min-width: 0; }
+
+  .studio-card-art {
+    position: relative;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--surface3);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .studio-card:hover .studio-card-art {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  }
+
+  .studio-card-cover {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    display: block;
+  }
+
+  .studio-card-score {
+    transition: opacity 0.15s;
+    position: absolute;
+    left: 5px;
+    bottom: 5px;
+    background: rgba(10,8,6,0.82);
+    border-radius: 10px;
+    color: var(--yellow);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+  }
+  .studio-card-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: var(--accent);
+    border-radius: 8px;
+    color: #1a0e0a;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 6px;
+  }
+
+
+  .studio-card-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.35;
+    margin-top: 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .studio-card-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .studio-more { align-self: center; }
+
   /* SEQUEL SUGGESTION MODAL */
   /* Below the other overlays so the info modal can open on top of it. */
   #sequel-modal { z-index: 190; }
@@ -1443,7 +1585,7 @@
 
   /* Unaired sequel: dim the top of the poster and label it. Hovering the
      poster clears both so the art can be seen. */
-  .sequel-cover-badge {
+  .cover-status {
     position: absolute;
     top: 0;
     left: 0;
@@ -1466,7 +1608,38 @@
     pointer-events: none;
     transition: opacity 0.15s;
   }
-  .sequel-cover-link:hover .sequel-cover-badge { opacity: 0; }
+  /* The date is the status badge's mirror at the foot of the poster: same
+     gradient flipped, and it leaves on hover alongside it so the art comes
+     back whole. Inside the poster, so the card keeps every other card's shape. */
+  .poster-date {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 46%;
+    padding: 0 4px 8px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: linear-gradient(to top,
+      rgba(10,8,6,0.97) 0%,
+      rgba(10,8,6,0.92) 32%,
+      rgba(10,8,6,0.64) 64%,
+      rgba(10,8,6,0) 100%);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+    pointer-events: none;
+    transition: opacity 0.15s;
+  }
+
+  .sequel-cover-link:hover .cover-status,
+  .sequel-cover-link:hover .poster-date,
+  .studio-card-art:hover .cover-status,
+  .studio-card-art:hover .poster-date { opacity: 0; }
 
   .sequel-cover {
     width: 100%;
