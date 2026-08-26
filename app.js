@@ -96,6 +96,7 @@ async function fetchList(userId) {
             updatedAt
             media {
               id
+              idMal
               title { romaji english }
               coverImage { medium large }
               format
@@ -179,13 +180,68 @@ function buildSeriesGroups(entries) {
 }
 
 // ── RENDER HELPERS ──
+// ── UKRAINIAN TITLES, LIVE FROM HIKKA ──
+// hikka.io publishes an open API with no key, but sends Access-Control-Allow-Origin
+// only to its own site — a plain fetch from here fails outright, GET included. So
+// calls go through a public proxy. No token exists to leak; the cost is that a
+// third party sees the lookups and can disappear, taking this with it.
+// AniList hands us idMal, so the join is an integer, never a string compare.
+const UK_PROXY = u => 'https://corsproxy.io/?url=' + encodeURIComponent(u);
+const UK_STORE = 'uk_titles_v1';
+const ukCache = new Map(JSON.parse(localStorage.getItem(UK_STORE) || '[]'));
+const ukPending = new Set();
+let ukSaveTimer = null;
+
+function ukPersist() {
+  clearTimeout(ukSaveTimer);
+  // one write per burst rather than one per title
+  ukSaveTimer = setTimeout(() => {
+    try { localStorage.setItem(UK_STORE, JSON.stringify([...ukCache])); } catch(e) {}
+  }, 600);
+}
+
+// A miss is cached as null on purpose: without it, every repaint re-asks for the
+// titles Hikka does not have, which is most of the long tail.
+async function ukLookup(idMal) {
+  ukPending.add(idMal);
+  try {
+    const r = await fetch(UK_PROXY('https://api.hikka.io/integrations/mal/anime/' + idMal));
+    const uk = r.ok ? ((await r.json()).title_ua || null) : null;
+    ukCache.set(idMal, uk);
+    return !!uk;
+  } catch(e) {
+    ukCache.set(idMal, null);
+    return false;
+  } finally {
+    ukPending.delete(idMal);
+  }
+}
+
+// getTitle() is synchronous and every render path depends on that, so names
+// cannot arrive mid-render. Instead: paint with what is cached, fetch the rest,
+// repaint once. Repaint only when something new landed, or this recurses.
+async function resolveUk(medias, repaint) {
+  const want = [...new Set(medias.map(m => m && m.idMal)
+    .filter(id => id && !ukCache.has(id) && !ukPending.has(id)))];
+  if (!want.length) return;
+  let found = 0;
+  const queue = want.map(id => () => ukLookup(id).then(ok => { if (ok) found++; }));
+  while (queue.length) await Promise.all(queue.splice(0, 5).map(f => f()));
+  ukPersist();
+  if (found) repaint();
+}
+
 function getTitle(media) {
   const t = media.title;
-  // uk-titles.js is optional: typeof keeps this working when the file is gone.
+  const uk = media.idMal ? ukCache.get(media.idMal) : null;
+  if (uk) return uk;
+  /* BACKUP — the previous file-based system. If Hikka or the proxy dies, restore
+     uk-titles.js, uncomment its <script> in index.html, and uncomment this:
   if (typeof UK_TITLES !== 'undefined') {
-    const uk = UK_TITLES[media.id] || UK_TITLES[t.english] || UK_TITLES[t.romaji] || UK_TITLES[t.native];
-    if (uk) return uk;
+    const f = UK_TITLES[media.id] || UK_TITLES[t.english] || UK_TITLES[t.romaji] || UK_TITLES[t.native];
+    if (f) return f;
   }
+  */
   return t.english || t.romaji;
 }
 
@@ -218,16 +274,21 @@ function unairedDate(m) {
 }
 
 function getSeriesTitle(group) {
-  // A franchise name is what a group header wants, and it is exactly what TMDB
-  // stores — so this replaces the "Season N" regex below whenever it has one.
+  /* BACKUP — UK_SERIES came from uk-titles.js and named whole franchises. Hikka
+     names every season separately instead, so the header is derived by stripping
+     the season suffix. Uncomment alongside the block in getTitle().
   if (typeof UK_SERIES !== 'undefined') {
     for (const e of group) {
       if (UK_SERIES[e.media.id]) return UK_SERIES[e.media.id];
     }
   }
+  */
   const main = group.find(e => MAIN_FORMATS.includes(e.media.format)) || group[0];
   const t = getTitle(main.media);
-  return t.replace(/\s+(Season\s+\d+|S\d+|\d+(st|nd|rd|th)\s+Season)$/i,'').trim() || t;
+  return t.replace(/\s+(Season\s+\d+|S\d+|\d+(st|nd|rd|th)\s+Season)$/i,'')
+          // Hikka's own form, e.g. "Ґінтама - 4 сезон, 2 частина"
+          .replace(/\s*[-–—]\s*\d+\s*сезон(\s*,\s*\d+\s*частина)?\s*$/i,'')
+          .trim() || t;
 }
 
 function normalize(s) {
@@ -332,7 +393,7 @@ async function addEntry(mediaId, status) {
       SaveMediaListEntry(mediaId: $mediaId, status: $status) {
         id status score progress notes updatedAt
         media {
-          id title { romaji english } coverImage { medium large }
+          id idMal title { romaji english } coverImage { medium large }
           format episodes season seasonYear
           relations { edges { relationType(version: 2) node { id type } } }
         }
@@ -410,6 +471,8 @@ function renderList() {
 
   if (groupingEnabled) renderGrouped(filtered, sort, container);
   else renderFlat(filtered, sort, container);
+
+  resolveUk(filtered.map(e => e.media), renderList);
 }
 
 function renderStats(entries) {
@@ -593,7 +656,7 @@ async function fetchTop(year, page) {
       Page(page: $page, perPage: 50) {
         pageInfo { hasNextPage }
         media(type: ANIME, sort: SCORE_DESC, seasonYear: $year, averageScore_greater: 1) {
-          id title { romaji english } coverImage { medium large }
+          id idMal title { romaji english } coverImage { medium large }
           averageScore format episodes seasonYear
         }
       }
@@ -662,6 +725,8 @@ function paintTop() {
   const more = state.hasNext
     ? `<button class="top-more" onclick="loadMoreTop()">${T.topMore}</button>` : '';
   $('list-container').innerHTML = `<div class="top-list">${rows}${more}</div>`;
+
+  resolveUk(state.rows, () => { if (currentTab === 'TOP') paintTop(); });
 }
 
 async function loadMoreTop() {
@@ -948,6 +1013,7 @@ async function openInfoModal(mediaId) {
   const overlay = $('info-modal');
   const body = $('info-body');
   $('info-title').textContent = '—';
+  $('info-original').textContent = '';
   $('info-subtitle').textContent = '';
   body.innerHTML = `<div class="loading"><div class="spinner"></div><div>${T.loading}</div></div>`;
   raiseModal(overlay);
@@ -960,6 +1026,7 @@ async function openInfoModal(mediaId) {
         query($id: Int) {
           Media(id: $id) {
             id
+            idMal
             title { romaji english }
             coverImage { large medium extraLarge }
             trailer { id site thumbnail }
@@ -1001,8 +1068,15 @@ function scoreDistGraph(dist) {
 }
 
 function renderInfoModal(media) {
-  const title = media.title.english || media.title.romaji;
+  // via getTitle so the header follows the Ukrainian name like every other
+  // surface — it read the raw fields before, and so never localised at all.
+  const title = getTitle(media);
   $('info-title').textContent = title;
+
+  // Show the original underneath, but only when it is not what is already on
+  // screen — otherwise every untranslated title prints its own name twice.
+  const original = media.title.english || media.title.romaji || '';
+  $('info-original').textContent = original && original !== title ? original : '';
 
   const year = media.startDate?.year || '';
   const fmt = T.format[media.format] || media.format || '';
@@ -1149,6 +1223,12 @@ function renderInfoModal(media) {
   editBtn.onclick = entry
     ? () => { closeInfoModal(); openModal(allEntries.find(e => e.media.id === media.id)); }
     : null;
+
+  // Only repaint if the panel is still showing this title — the trailer is torn
+  // down on close, and rebuilding it under a closed modal would resurrect it.
+  resolveUk([media], () => {
+    if ($('info-modal').classList.contains('open')) renderInfoModal(media);
+  });
 }
 
 // controls=0 keeps YouTube's chrome out of the card; a click still pauses.
@@ -1458,7 +1538,7 @@ async function maybeSuggestSequel(entry) {
       query($ids: [Int]) {
         Page(perPage: 10) {
           media(id_in: $ids, type: ANIME) {
-            id title { romaji english } coverImage { medium large }
+            id idMal title { romaji english } coverImage { medium large }
             format episodes status startDate { year month day }
           }
         }

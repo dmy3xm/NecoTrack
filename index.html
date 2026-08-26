@@ -151,6 +151,7 @@
     <div class="modal-header" style="padding-bottom:0; border-bottom:none; gap:10px;">
       <div class="modal-title-wrap">
         <div class="modal-title" id="info-title">—</div>
+        <div class="modal-original" id="info-original"></div>
         <div class="modal-subtitle" id="info-subtitle">—</div>
       </div>
       <button class="btn-close" onclick="closeInfoModal()">✕</button>
@@ -218,7 +219,10 @@
 <div id="toast"></div>
 
 <script src="strings.js"></script>
+<!-- BACKUP: file-based Ukrainian titles, superseded by the live Hikka lookup
+     in app.js. Restore uk-titles.js and uncomment this to fall back.
 <script src="uk-titles.js"></script>
+-->
 <script src="app.js"></script>
 </body>
 </html>

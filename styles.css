@@ -1007,6 +1007,17 @@
     margin-top: 3px;
   }
 
+  /* The original name under a translated one — there to check the translation
+     against, so it stays quieter than the meta line and is hidden when the
+     title on screen is already the original. */
+  .modal-original {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    line-height: 1.35;
+  }
+  .modal-original:empty { display: none; }
+
   .btn-close {
     background: var(--surface2);
     border: 1px solid var(--border);
