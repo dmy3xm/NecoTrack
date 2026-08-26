@@ -175,7 +175,13 @@ function buildSeriesGroups(entries) {
 
 // ── RENDER HELPERS ──
 function getTitle(media) {
-  return media.title.english || media.title.romaji;
+  const t = media.title;
+  // uk-titles.js is optional: typeof keeps this working when the file is gone.
+  if (typeof UK_TITLES !== 'undefined') {
+    const uk = UK_TITLES[media.id] || UK_TITLES[t.english] || UK_TITLES[t.romaji] || UK_TITLES[t.native];
+    if (uk) return uk;
+  }
+  return t.english || t.romaji;
 }
 
 function getSeriesTitle(group) {
@@ -185,7 +191,9 @@ function getSeriesTitle(group) {
 }
 
 function normalize(s) {
-  return s.toLowerCase().replace(/[^\w\s]/g,'').replace(/\s+/g,' ').trim();
+  // \w is ASCII-only, so the old [^\w\s] deleted every Cyrillic letter and left
+  // an empty query — which then matched every row. \p{L} keeps any alphabet.
+  return s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,'').replace(/\s+/g,' ').trim();
 }
 
 function fuzzyMatch(query, target) {
@@ -348,7 +356,9 @@ function renderList() {
     : allEntries.filter(e => e.status === currentTab);
 
   if (search) {
-    filtered = filtered.filter(e => fuzzyMatch(search, getTitle(e.media)) || fuzzyMatch(search, e.media.title.romaji || ''));
+    filtered = filtered.filter(e => fuzzyMatch(search, getTitle(e.media))
+      || fuzzyMatch(search, e.media.title.romaji || '')
+      || fuzzyMatch(search, e.media.title.english || ''));
   }
 
   renderStats(filtered);
