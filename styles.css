@@ -392,8 +392,8 @@
   .top-row {
     display: flex;
     align-items: center;
-    gap: 11px;
-    padding: 7px 6px;
+    gap: 12px;
+    padding: 8px 6px;
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: background 0.12s;
@@ -410,22 +410,22 @@
   }
 
   .top-rank {
-    width: 26px;
+    width: 36px;
     flex-shrink: 0;
     text-align: center;
     font-family: 'Nunito', sans-serif;
     font-weight: 800;
-    font-size: 16px;
+    font-size: 19px;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
   }
   .top-rank.top3 { color: var(--accent); }
 
   .top-cover {
-    width: 42px;
-    height: 59px;
+    width: 81px;
+    height: 117px;
     object-fit: cover;
-    border-radius: 5px;
+    border-radius: 6px;
     background: var(--surface3);
     flex-shrink: 0;
   }
@@ -441,7 +441,11 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .top-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .top-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+  /* flex blockifies the inline .catalog-add span, so margin-top applies and its
+     vertical padding doesn't overflow the line box. */
+  .top-add { display: flex; margin-top: 7px; }
 
   .top-score {
     flex-shrink: 0;
@@ -470,6 +474,15 @@
     transition: border-color 0.15s, color 0.15s;
   }
   .top-more:not(:disabled):hover { border-color: var(--accent); color: var(--accent); }
+
+  /* A width query, not a pointer one: this is about horizontal room, not input.
+     At 360px the 81px cover left the title 121px and truncated 17 of 50 rows
+     against 5 before; trimming the cover and rank buys most of that back. */
+  @media (max-width: 400px) {
+    .top-row   { gap: 9px; }
+    .top-rank  { width: 28px; font-size: 17px; }
+    .top-cover { width: 72px; height: 104px; }
+  }
 
   /* CONTROLS */
   .controls {
@@ -1300,6 +1313,18 @@
     display: block;
   }
 
+  /* pre-wrap keeps the author's line breaks without turning 
+ into markup;
+     anywhere is required because the desktop left column is a fixed 220px
+     track that a pasted URL would otherwise overflow. */
+  .info-notes-text {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
   .info-desc-toggle {
     background: none;
     border: none;
@@ -1702,6 +1727,7 @@
     }
     .info-cover-lg { max-height: 320px; border-radius: var(--radius); }
     .info-col-left { margin-bottom: 0; }
+    .info-col-left > .info-notes { margin-top: 12px; }
   }
 
   /* A phone in landscape is wide enough for the two-column layout but only
@@ -1715,7 +1741,10 @@
      everything wide (graph, description, related) full width underneath.
      display: contents flattens the two desktop columns into this grid so the
      desktop layout above stays untouched. */
-  @media (max-width: 649px) {
+  /* 649.98, not 649: a fractional viewport (browser zoom, some DPRs) lands
+     between 649 and 650, where neither this nor the min-width:650 block below
+     matches and the modal loses both layouts. Measured at 649.6157px. */
+  @media (max-width: 649.98px) {
     #info-body {
       display: grid;
       grid-template-columns: 130px minmax(0, 1fr);
@@ -1740,4 +1769,5 @@
     }
     .info-col-left > .info-link { order: 1; justify-self: start; }
     .trailer-section { order: 2; }
+    .info-col-left > .info-notes { order: 3; }
   }

@@ -22,6 +22,11 @@ const $ = id => document.getElementById(id);
 // resolve "status.CURRENT" style dotted keys against T
 const tr = key => key.split('.').reduce((o, k) => o && o[k], T);
 
+// Notes are the one user-authored string rendered through innerHTML. Quotes are
+// escaped too, so this is safe for attribute values, not just text.
+const esc = s => String(s).replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
 function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = tr(el.dataset.i18n));
   document.querySelectorAll('[data-i18n-ph]').forEach(el => el.placeholder = tr(el.dataset.i18nPh));
@@ -483,7 +488,6 @@ function rowHTML(entry, variant) {
         <div class="${metaClass}">
           <span class="status-badge status-${entry.status}">${T.status[entry.status] || entry.status}</span>
           <span class="progress-text">${prog}${eps ? '/'+eps : ''} ${T.epShort}</span>
-          ${entry.notes ? `<span style="font-size:11px;color:var(--text-muted)" title="${entry.notes}">📝</span>` : ''}
         </div>
         ${progressBar(prog, eps)}
       </div>
@@ -613,13 +617,17 @@ async function renderTop() {
 function paintTop() {
   const state = topCache[String(topYear)];
   if (!state) return;
+  const listIds = new Set(allEntries.map(e => e.media.id));
   const rows = state.rows.map((m, i) => `
     <div class="top-row" data-id="${m.id}" onclick="openInfoModal(${m.id})">
       <div class="top-rank${i < 3 ? ' top3' : ''}">${i + 1}</div>
-      <img src="${m.coverImage.medium}" class="top-cover" loading="lazy">
+      <img src="${m.coverImage.large || m.coverImage.medium}" class="top-cover" loading="lazy">
       <div class="top-info">
         <div class="top-title">${getTitle(m)}</div>
         <div class="top-meta">${[T.format[m.format] || m.format, m.seasonYear, m.episodes ? m.episodes + ' ' + T.epShort : ''].filter(Boolean).join(' · ')}</div>
+        ${listIds.has(m.id)
+          ? `<div class="top-add"><span class="catalog-add in-list">${T.catalogInList}</span></div>`
+          : ''}
       </div>
       <div class="top-score">★ ${(m.averageScore / 10).toFixed(1)}</div>
     </div>`).join('');
@@ -980,6 +988,13 @@ function renderInfoModal(media) {
 
   const anilistLink = `<a class="info-link" href="https://anilist.co/anime/${media.id}" target="_blank" rel="noopener">${T.anilistLink}</a>`;
 
+  const notesHtml = entry?.notes?.trim()
+    ? `<div class="field-group info-notes">
+         <div class="field-label">${T.fldNotes}</div>
+         <div class="info-notes-text">${esc(entry.notes.trim())}</div>
+       </div>`
+    : '';
+
   // AniList sometimes stores the id with trailing whitespace, which would
   // corrupt the thumbnail URL. Only YouTube is handled; Dailymotion is rare.
   // maxresdefault is missing for roughly half of older trailers, and YouTube
@@ -1038,6 +1053,7 @@ function renderInfoModal(media) {
     <div class="info-col-left">
       <img src="${coverSrc}" srcset="${coverSet}" sizes="(min-width: 650px) 220px, 130px" class="info-cover-lg" loading="lazy">
       ${anilistLink}
+      ${notesHtml}
     </div>
     <div class="info-col-right">
       <div class="info-meta-row">
