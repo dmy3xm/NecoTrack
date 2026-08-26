@@ -185,6 +185,13 @@ function getTitle(media) {
 }
 
 function getSeriesTitle(group) {
+  // A franchise name is what a group header wants, and it is exactly what TMDB
+  // stores — so this replaces the "Season N" regex below whenever it has one.
+  if (typeof UK_SERIES !== 'undefined') {
+    for (const e of group) {
+      if (UK_SERIES[e.media.id]) return UK_SERIES[e.media.id];
+    }
+  }
   const main = group.find(e => MAIN_FORMATS.includes(e.media.format)) || group[0];
   const t = getTitle(main.media);
   return t.replace(/\s+(Season\s+\d+|S\d+|\d+(st|nd|rd|th)\s+Season)$/i,'').trim() || t;
