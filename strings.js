@@ -51,7 +51,7 @@ const T = {
   topFindDeeper: n => `Немає серед перших ${n} рейтингу.`,
   topFindMore: n => `Шукати ще ${n}`,
   topFindGoToYear: y => `Шукати в ${y}`,
-  topFindInfo: 'Докладніше',
+  topFindInfo: 'Про аніме',
   // trailer
   trailer: 'Трейлер',
   trailerOfficial: 'Офіційний трейлер',
