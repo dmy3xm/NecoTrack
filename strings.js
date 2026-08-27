@@ -50,6 +50,8 @@ const T = {
   topFindUnranked: 'Рейтинг переглянуто до кінця — цей тайтл до нього не входить, бо не має оцінки.',
   topFindDeeper: n => `Немає серед перших ${n} рейтингу.`,
   topFindMore: n => `Шукати ще ${n}`,
+  topFindGoToYear: y => `Шукати в ${y}`,
+  topFindInfo: 'Докладніше',
   // trailer
   trailer: 'Трейлер',
   trailerOfficial: 'Офіційний трейлер',

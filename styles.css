@@ -577,6 +577,16 @@
     margin-top: 1px;
   }
 
+  /* the name the query matched, under the displayed one */
+  .catalog-original {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .catalog-warn {
     font-size: 11px;
     color: var(--red);
@@ -1018,6 +1028,18 @@
   }
   .modal-original:empty { display: none; }
 
+  /* Romaji sits under the English one: useful for checking a translation and
+     for recognising a title that was never released under an English name,
+     but it is the least-wanted of the three, so it is the quietest. */
+  .modal-romaji {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    opacity: 0.75;
+    margin-top: 1px;
+    line-height: 1.35;
+  }
+  .modal-romaji:empty { display: none; }
+
   .btn-close {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -1149,6 +1171,9 @@
     gap: 7px;
     justify-content: flex-end;
   }
+
+  /* this one can carry three actions at once; the others never do */
+  #top-find-modal .modal-footer { flex-wrap: wrap; }
 
   .btn-save {
     background: var(--accent);

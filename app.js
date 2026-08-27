@@ -202,15 +202,22 @@ function ukPersist() {
 
 // A miss is cached as null on purpose: without it, every repaint re-asks for the
 // titles Hikka does not have, which is most of the long tail.
+// Hikka gains titles over time, so "not there" has to be allowed to expire —
+// stored as a plain null it never would. A cache value is therefore either the
+// name (a string) or the moment the lookup came up empty (a number). Values left
+// as null by the earlier format read as stale and get one free re-check.
+const UK_MISS_TTL = 14 * 24 * 60 * 60 * 1000;
+const ukStale = v => v === null || (typeof v === 'number' && Date.now() - v > UK_MISS_TTL);
+
 async function ukLookup(idMal) {
   ukPending.add(idMal);
   try {
     const r = await fetch(UK_PROXY('https://api.hikka.io/integrations/mal/anime/' + idMal));
     const uk = r.ok ? ((await r.json()).title_ua || null) : null;
-    ukCache.set(idMal, uk);
+    ukCache.set(idMal, uk || Date.now());
     return !!uk;
   } catch(e) {
-    ukCache.set(idMal, null);
+    ukCache.set(idMal, Date.now());
     return false;
   } finally {
     ukPending.delete(idMal);
@@ -222,7 +229,8 @@ async function ukLookup(idMal) {
 // repaint once. Repaint only when something new landed, or this recurses.
 async function resolveUk(medias, repaint) {
   const want = [...new Set(medias.map(m => m && m.idMal)
-    .filter(id => id && !ukCache.has(id) && !ukPending.has(id)))];
+    .filter(id => id && !ukPending.has(id)
+      && (!ukCache.has(id) || ukStale(ukCache.get(id)))))];
   if (!want.length) return;
   let found = 0;
   const queue = want.map(id => () => ukLookup(id).then(ok => { if (ok) found++; }));
@@ -230,8 +238,6 @@ async function resolveUk(medias, repaint) {
   ukPersist();
   if (found) repaint();
 }
-
-const CYRILLIC = /[Ѐ-ӿ]/;
 
 // AniList stores no Ukrainian titles at all, so a Cyrillic query can only be
 // answered by Hikka. It hands back mal_id, AniList takes those as a filter, and
@@ -248,7 +254,7 @@ async function searchViaHikka(query) {
     if (!a.mal_id) continue;
     ids.push(a.mal_id);
     // the Ukrainian name arrived with the search, so it costs nothing to keep
-    if (a.title_ua) ukCache.set(a.mal_id, a.title_ua);
+    ukCache.set(a.mal_id, a.title_ua || Date.now());
   }
   if (!ids.length) return [];
   ukPersist();
@@ -270,7 +276,7 @@ async function searchViaHikka(query) {
 function getTitle(media) {
   const t = media.title;
   const uk = media.idMal ? ukCache.get(media.idMal) : null;
-  if (uk) return uk;
+  if (typeof uk === 'string' && uk) return uk;   // a number here is a past miss
   /* BACKUP — the previous file-based system. If Hikka or the proxy dies, restore
      uk-titles.js, uncomment its <script> in index.html, and uncomment this:
   if (typeof UK_TITLES !== 'undefined') {
@@ -361,9 +367,18 @@ async function searchCatalog(query) {
   drop.style.display = 'block';
   drop.innerHTML = `<div class="catalog-loading">${T.searching}</div>`;
   try {
-    if (CYRILLIC.test(query)) {
+    // Hikka first, for every query — it prefix-matches properly where AniList's
+    // is erratic ("Frieren" answers there at two letters, then nothing until
+    // seven), and it indexes English and Japanese names, not only Ukrainian.
+    // AniList is the rescue: it still finds the oddly-named sequels Hikka has no
+    // entry for, and it is where every search lands if the proxy stops
+    // answering — so an outage costs the better matching, never the search.
+    try {
       lastCatalogResults = await searchViaHikka(query);
-    } else {
+    } catch(e) {
+      lastCatalogResults = [];
+    }
+    if (!lastCatalogResults.length) {
       const data = await gql(`
         query($search: String) {
           Page(perPage: 8) {
@@ -389,6 +404,17 @@ async function searchCatalog(query) {
 
 // Split from the fetch so that changing the year on Top can re-mark the
 // wrong-year rows from the results already in hand, without a second request.
+const CYRILLIC = /[Ѐ-ӿ]/;
+
+// Which of a title's names did the query actually hit? A romaji search should
+// confirm itself rather than answering with an English name nobody typed.
+function matchedName(m, query) {
+  const en = m.title.english || '', ro = m.title.romaji || '';
+  const q = normalize(query || '');
+  if (q && ro && normalize(ro).includes(q) && !(en && normalize(en).includes(q))) return ro;
+  return en || ro;
+}
+
 function paintCatalog() {
   const drop = $('catalog-results');
   const results = lastCatalogResults;
@@ -396,9 +422,16 @@ function paintCatalog() {
   const listIds = new Set(allEntries.map(e => e.media.id));
   const onTop = currentTab === 'TOP';
   const year = onTop && topYear !== 'all' ? Number(topYear) : null;
+  const ukFirst = CYRILLIC.test(lastCatalogQuery || '');
   let html = `<div class="search-mode-hint"><span>${T.catalogResults}</span><button onclick="closeCatalog()">✕</button></div>`;
   for (const m of results) {
-    const title = getTitle(m);
+    // Lead with the name in the language that was typed: search in Latin and the
+    // Latin name is the one being looked for, search in Ukrainian and it is not.
+    // The other name goes underneath, so nothing is hidden either way.
+    const latin = matchedName(m, lastCatalogQuery);
+    const uk = getTitle(m);
+    const title = ukFirst ? uk : (latin || uk);
+    const second = ukFirst ? latin : uk;
     const inList = listIds.has(m.id);
     const meta = [m.format, m.episodes ? m.episodes+' '+T.epShort : null, m.seasonYear].filter(Boolean).join(' · ');
     html += `
@@ -406,6 +439,7 @@ function paintCatalog() {
         <img src="${m.coverImage.medium}" class="catalog-cover" loading="lazy">
         <div class="catalog-info">
           <div class="catalog-title">${title}</div>
+          ${second && second !== title ? `<div class="catalog-original">${second}</div>` : ''}
           <div class="catalog-meta">${meta}</div>
           ${year !== null && m.seasonYear !== year ? `<div class="catalog-warn">${T.topOtherYear(m.seasonYear)}</div>` : ''}
         </div>
@@ -907,10 +941,41 @@ function showTopFind(media, reason, loaded) {
   const more = $('top-find-more');
   more.textContent = T.topFindMore(TOP_FIND_AHEAD);
   more.style.display = reason === 'deeper' ? '' : 'none';
+
+  // The year it does belong to is the one useful thing known in that case, so
+  // offer to go there rather than only naming it and leaving the work manual.
+  const yr = $('top-find-year');
+  const canYear = reason === 'year' && media && media.seasonYear;
+  yr.textContent = canYear ? T.topFindGoToYear(media.seasonYear) : '';
+  yr.style.display = canYear ? '' : 'none';
+
+  // The info card is worth reaching whatever the reason was — often the point
+  // of the search was the title itself, not its place in a ranking.
+  const info = $('top-find-info');
+  info.textContent = T.topFindInfo;
+  info.style.display = media ? '' : 'none';
+
   $('top-find-modal').classList.add('open');
 }
 
 function closeTopFind() { $('top-find-modal').classList.remove('open'); }
+
+// Switch the ranking to the year the title actually belongs to, then jump to it
+// there. renderTop() must finish first or the jump searches an unpainted year.
+async function topFindGoToYear() {
+  const m = topFindMedia;
+  closeTopFind();
+  if (!m || !m.seasonYear) return;
+  topYear = m.seasonYear;
+  await renderTop();
+  jumpToTop(m.id, m);
+}
+
+function topFindInfo() {
+  const m = topFindMedia;
+  closeTopFind();
+  if (m) openInfoModal(m.id);
+}
 
 function topFindSearchMore() {
   const m = topFindMedia;
@@ -1055,6 +1120,7 @@ async function openInfoModal(mediaId) {
   const body = $('info-body');
   $('info-title').textContent = '—';
   $('info-original').textContent = '';
+  $('info-romaji').textContent = '';
   $('info-subtitle').textContent = '';
   body.innerHTML = `<div class="loading"><div class="spinner"></div><div>${T.loading}</div></div>`;
   raiseModal(overlay);
@@ -1114,10 +1180,13 @@ function renderInfoModal(media) {
   const title = getTitle(media);
   $('info-title').textContent = title;
 
-  // Show the original underneath, but only when it is not what is already on
-  // screen — otherwise every untranslated title prints its own name twice.
-  const original = media.title.english || media.title.romaji || '';
-  $('info-original').textContent = original && original !== title ? original : '';
+  // English under the title, romaji under that — each shown only when it is not
+  // already on screen, or an untranslated title prints its own name three times.
+  const en = media.title.english || '';
+  const ro = media.title.romaji || '';
+  const second = en && en !== title ? en : (!en && ro !== title ? ro : '');
+  $('info-original').textContent = second;
+  $('info-romaji').textContent = ro && ro !== title && ro !== second ? ro : '';
 
   const year = media.startDate?.year || '';
   const fmt = T.format[media.format] || media.format || '';
