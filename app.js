@@ -231,6 +231,42 @@ async function resolveUk(medias, repaint) {
   if (found) repaint();
 }
 
+const CYRILLIC = /[Ѐ-ӿ]/;
+
+// AniList stores no Ukrainian titles at all, so a Cyrillic query can only be
+// answered by Hikka. It hands back mal_id, AniList takes those as a filter, and
+// what comes out is ordinary AniList media — so the dropdown, the info card and
+// "+ Add" all keep working untouched.
+async function searchViaHikka(query) {
+  const r = await fetch(UK_PROXY('https://api.hikka.io/anime?page=1&size=12'), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query })
+  });
+  if (!r.ok) throw new Error('Hikka ' + r.status);
+  const ids = [];
+  for (const a of (await r.json()).list || []) {
+    if (!a.mal_id) continue;
+    ids.push(a.mal_id);
+    // the Ukrainian name arrived with the search, so it costs nothing to keep
+    if (a.title_ua) ukCache.set(a.mal_id, a.title_ua);
+  }
+  if (!ids.length) return [];
+  ukPersist();
+  const data = await gql(`
+    query($ids: [Int]) {
+      Page(perPage: 12) {
+        media(idMal_in: $ids, type: ANIME) {
+          id idMal title { romaji english } coverImage { medium }
+          episodes seasonYear format
+        }
+      }
+    }
+  `, { ids });
+  // AniList returns its own order; Hikka's was by relevance, so put it back
+  const rank = new Map(ids.map((id, i) => [id, i]));
+  return (data.Page.media || []).sort((a, b) => rank.get(a.idMal) - rank.get(b.idMal));
+}
+
 function getTitle(media) {
   const t = media.title;
   const uk = media.idMal ? ukCache.get(media.idMal) : null;
@@ -325,21 +361,26 @@ async function searchCatalog(query) {
   drop.style.display = 'block';
   drop.innerHTML = `<div class="catalog-loading">${T.searching}</div>`;
   try {
-    const data = await gql(`
-      query($search: String) {
-        Page(perPage: 8) {
-          media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
-            id
-            title { romaji english }
-            coverImage { medium }
-            episodes
-            seasonYear
-            format
+    if (CYRILLIC.test(query)) {
+      lastCatalogResults = await searchViaHikka(query);
+    } else {
+      const data = await gql(`
+        query($search: String) {
+          Page(perPage: 8) {
+            media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
+              id
+              idMal
+              title { romaji english }
+              coverImage { medium }
+              episodes
+              seasonYear
+              format
+            }
           }
         }
-      }
-    `, { search: query });
-    lastCatalogResults = data.Page.media;
+      `, { search: query });
+      lastCatalogResults = data.Page.media;
+    }
     paintCatalog();
   } catch(e) {
     drop.innerHTML = `<div class="catalog-loading">${T.errPrefix}${e.message}</div>`;
@@ -357,7 +398,7 @@ function paintCatalog() {
   const year = onTop && topYear !== 'all' ? Number(topYear) : null;
   let html = `<div class="search-mode-hint"><span>${T.catalogResults}</span><button onclick="closeCatalog()">✕</button></div>`;
   for (const m of results) {
-    const title = m.title.english || m.title.romaji;
+    const title = getTitle(m);
     const inList = listIds.has(m.id);
     const meta = [m.format, m.episodes ? m.episodes+' '+T.epShort : null, m.seasonYear].filter(Boolean).join(' · ');
     html += `
