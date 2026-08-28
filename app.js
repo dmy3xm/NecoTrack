@@ -1020,6 +1020,21 @@ function topFindSearchMore() {
 }
 
 // ── TABS ──
+// The logo is the way home, and there is no home page — so home is whatever
+// you are watching. Landing on an empty screen would be worse than not moving
+// at all, so the whole list stands in whenever nothing is in progress.
+function goHome() {
+  const tab = allEntries.some(e => e.status === 'CURRENT') ? 'CURRENT' : 'ALL';
+  const btn = document.querySelector(`.tab[data-tab="${tab}"]`);
+  if (!btn) return;
+  // A stale search would leave home looking half-empty for no visible reason.
+  $('search-input').value = '';
+  closeCatalog();
+  setTab(tab, btn);
+  btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function setTab(tab, btn) {
   currentTab = tab;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));

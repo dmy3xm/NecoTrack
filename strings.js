@@ -11,7 +11,7 @@ const T = {
   authLogin: 'Увійти',
   enterToken: 'Please enter a token',
   // header / tabs / controls
-  refresh: 'Оновити', logout: 'Вийти', tabAll: 'Усі',
+  refresh: 'Оновити', logout: 'Вийти', tabAll: 'Усі', home: 'На головну',
   searchPlaceholder: 'Пошук у списку…',
   sortTitle: 'За назвою', sortScore: 'За оцінкою', sortProgress: 'За прогресом',
   sortUpdated: 'За датою', sortYear: 'За роком', groupOn: 'Групи', groupOff: 'Список',
