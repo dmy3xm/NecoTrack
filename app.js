@@ -103,6 +103,8 @@ async function fetchList(userId) {
               episodes
               season
               seasonYear
+              status
+              startDate { year month day }
               relations {
                 edges {
                   relationType(version: 2)
@@ -321,7 +323,7 @@ async function searchViaHikka(query) {
       Page(perPage: ${SEARCH_SHOW + 3}) {
         media(idMal_in: $ids, type: ANIME) {
           id idMal title { romaji english } coverImage { medium }
-          episodes seasonYear format
+          episodes seasonYear format status startDate { year month day }
         }
       }
     }
@@ -364,8 +366,14 @@ function releaseDateText(d) {
 // for anything already aired — only an unaired title carries a date.
 const isUnaired = m => m.status === 'NOT_YET_RELEASED';
 
+// Both labels ship; the poster size decides which shows. «Очікується» needs
+// 49px to sit on one line and a thumbnail gives it 24, so the short one exists
+// for those — chosen in CSS rather than here, so the rule stays in one place.
 function unairedBadge(m) {
-  return isUnaired(m) ? `<div class="cover-status">${T.mediaStatus[m.status]}</div>` : '';
+  return isUnaired(m) ? `<div class="cover-status">
+      <span class="status-full">${T.mediaStatus[m.status]}</span>
+      <span class="status-short">${T.mediaStatusShort}</span>
+    </div>` : '';
 }
 
 // Sits inside the poster, mirroring the status badge at the other end, so the
@@ -373,6 +381,20 @@ function unairedBadge(m) {
 // hover to hand the art back.
 function unairedDate(m) {
   return isUnaired(m) ? `<div class="poster-date">${esc(releaseDateText(m.startDate))}</div>` : '';
+}
+
+// One place decides what a poster is: the box, the corner and the unaired
+// treatment. A surface picks a size and passes nothing else — which is why the
+// badge is guaranteed to be there, and why the radii cannot drift apart again.
+// opts: cls (extra classes), attrs (on the box), img (on the <img>), extra
+// (markup layered over the art, e.g. an in-list badge).
+function posterHTML(m, size, opts) {
+  opts = opts || {};
+  const src = (m.coverImage && (m.coverImage.large || m.coverImage.medium)) || '';
+  return `<div class="poster poster-${size}${opts.cls ? ' ' + opts.cls : ''}"${opts.attrs || ''}>
+    <img src="${src}" class="poster-img" loading="lazy" alt=""${opts.img || ''}>
+    ${unairedBadge(m)}${unairedDate(m)}${opts.extra || ''}
+  </div>`;
 }
 
 function getSeriesTitle(group) {
@@ -477,6 +499,8 @@ async function searchCatalog(query) {
               episodes
               seasonYear
               format
+              status
+              startDate { year month day }
             }
           }
         }
@@ -524,7 +548,7 @@ function paintCatalog() {
     const meta = [m.format, m.episodes ? m.episodes+' '+T.epShort : null, m.seasonYear].filter(Boolean).join(' · ');
     html += `
       <div class="catalog-item" style="cursor:pointer" onclick="${onTop ? `jumpToTop(${m.id})` : `openInfoModal(${m.id})`}">
-        <img src="${m.coverImage.medium}" class="catalog-cover" loading="lazy">
+        ${posterHTML(m, 'xs')}
         <div class="catalog-info">
           <div class="catalog-title">${title}</div>
           ${second && second !== title ? `<div class="catalog-original">${second}</div>` : ''}
@@ -692,7 +716,7 @@ function renderGrouped(entries, sort, container) {
       html += `
         <div class="series-group" id="${groupId}">
           <div class="series-header" onclick="toggleGroup('${groupId}')">
-            <img src="${cover}" class="series-cover" loading="lazy" style="cursor:pointer" onclick="event.stopPropagation(); openInfoModal(${rep.media.id})">
+            ${posterHTML(rep.media, 'xl', { attrs: ` style="cursor:pointer" onclick="event.stopPropagation(); openInfoModal(${rep.media.id})"` })}
             <div class="series-info">
               <div class="series-title">${seriesTitle}</div>
               <div class="series-meta">
@@ -736,7 +760,7 @@ function rowHTML(entry, variant) {
   const metaClass = variant === 'season' ? 'season-submeta' : 'standalone-meta';
   return `
     <div class="${variant}-row" style="cursor:pointer" onclick="openInfoModal(${m.id})">
-      <img src="${cover}" class="${variant}-cover" loading="lazy">
+      ${posterHTML(m, variant === 'season' ? 'lg' : 'xl')}
       <div class="${variant}-info">
         <div class="${variant}-title">${getTitle(m)}</div>
         <div class="${metaClass}">
@@ -820,7 +844,7 @@ async function fetchTop(year, page) {
         pageInfo { hasNextPage }
         media(type: ANIME, sort: SCORE_DESC, seasonYear: $year, averageScore_greater: 1) {
           id idMal title { romaji english } coverImage { medium large }
-          averageScore format episodes seasonYear
+          averageScore format episodes seasonYear status startDate { year month day }
         }
       }
     }
@@ -875,7 +899,7 @@ function paintTop() {
   const rows = state.rows.map((m, i) => `
     <div class="top-row" data-id="${m.id}" onclick="openInfoModal(${m.id})">
       <div class="top-rank${i < 3 ? ' top3' : ''}">${i + 1}</div>
-      <img src="${m.coverImage.large || m.coverImage.medium}" class="top-cover" loading="lazy">
+      ${posterHTML(m, 'md')}
       <div class="top-info">
         <div class="top-title">${getTitle(m)}</div>
         <div class="top-meta">${[T.format[m.format] || m.format, m.seasonYear, m.episodes ? m.episodes + ' ' + T.epShort : ''].filter(Boolean).join(' · ')}</div>
@@ -1249,7 +1273,8 @@ async function openInfoModal(mediaId) {
             relations {
               edges {
                 relationType(version: 2)
-                node { id idMal type title { romaji english } coverImage { medium } }
+                node { id idMal type title { romaji english } coverImage { medium }
+                       status startDate { year month day } }
               }
             }
           }
@@ -1407,7 +1432,7 @@ function renderInfoModal(media) {
       const badge = inList ? `<span class="related-in-list-badge">${T.inList}</span>` : '';
       return `
         <div class="related-item" style="cursor:pointer" onclick="openInfoModal(${rMedia.id})">
-          <img src="${rMedia.coverImage.medium}" class="related-thumb" loading="lazy">
+          ${posterHTML(rMedia, 'sm')}
           <div class="related-info">
             <div class="related-name">${rTitle}</div>
             <div class="related-type-label">${T.relation[edge.relationType] || edge.relationType}</div>
@@ -1423,7 +1448,7 @@ function renderInfoModal(media) {
 
   $('info-body').innerHTML = `
     <div class="info-col-left">
-      <img src="${coverSrc}" srcset="${coverSet}" sizes="(min-width: 650px) 220px, 130px" class="info-cover-lg" loading="lazy">
+      ${posterHTML(media, 'fluid', { cls: 'info-cover-lg', img: ` srcset="${coverSet}" sizes="(min-width: 650px) 220px, 130px"` })}
       ${anilistLink}
       ${notesHtml}
     </div>
@@ -1721,6 +1746,7 @@ async function loadStudioPage() {
             pageInfo { hasNextPage }
             nodes {
               id
+              idMal
               title { romaji english native }
               coverImage { large medium }
               format status averageScore
@@ -1773,11 +1799,7 @@ function renderStudioModal() {
     const badge = listIds.has(m.id)
       ? `<span class="studio-card-badge">${T.inList}</span>` : '';
     return `<div class="studio-card" onclick="openInfoModal(${m.id})">
-      <div class="studio-card-art">
-        <img src="${m.coverImage.large || m.coverImage.medium}" class="studio-card-cover" loading="lazy" alt="">
-        ${unairedBadge(m)}${unairedDate(m)}
-        ${badge}${score}
-      </div>
+      ${posterHTML(m, 'fluid', { cls: 'studio-card-art', extra: badge + score })}
       <div class="studio-card-name">${esc(getTitle(m))}</div>
       <div class="studio-card-meta">${meta}</div>
     </div>`;
@@ -1787,6 +1809,15 @@ function renderStudioModal() {
     ? `<button class="btn-cancel studio-more" id="studio-more" onclick="loadStudioPage()">${T.topMore}</button>`
     : '';
   $('studio-body').innerHTML = `<div class="studio-grid">${cards}</div>${more}`;
+
+  // A studio's works are recognisable titles, unlike a relation list full of
+  // shorts, so these are worth resolving. Guarded on the studio still being the
+  // one on screen: paging is async and the modal can be closed or switched.
+  resolveUk(st.items, () => {
+    if ($('studio-modal').classList.contains('open') && studioState.id === st.id) {
+      renderStudioModal();
+    }
+  });
 }
 
 function closeStudioModal() {
@@ -1836,10 +1867,7 @@ function renderSequelModal(sourceTitle, list) {
     return `
       <div class="sequel-card">
         <div class="sequel-card-main">
-          <div class="sequel-cover-link" onclick="openInfoModal(${m.id})">
-            <img src="${m.coverImage.large || m.coverImage.medium}" class="sequel-cover" loading="lazy">
-            ${unairedBadge(m)}${unairedDate(m)}
-          </div>
+          ${posterHTML(m, 'fluid', { cls: 'sequel-cover-link', attrs: ` onclick="openInfoModal(${m.id})"` })}
           <div class="sequel-body">
             <div class="sequel-text">
               <div class="sequel-name">${getTitle(m)}</div>

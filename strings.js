@@ -81,5 +81,6 @@ const T = {
   relation:    { SEQUEL:'Сіквел', PREQUEL:'Приквел', SPIN_OFF:'Спін-оф', SIDE_STORY:'Побічна історія',
                  ALTERNATIVE:'Альтернатива', SUMMARY:'Підсумок', PARENT:'Батьківський', CHARACTER:'Персонаж', OTHER:'Інше' },
   mediaStatus: { FINISHED:'Завершено', RELEASING:'Виходить', NOT_YET_RELEASED:'Очікується', CANCELLED:'Скасовано', HIATUS:'Пауза' },
+  mediaStatusShort: 'Скоро',   // thumbnails: «Очікується» cannot fit one line
   format:      { TV:'TV', TV_SHORT:'TV Short', MOVIE:'Фільм', SPECIAL:'Спешл', OVA:'OVA', ONA:'ONA', MUSIC:'Музика' },
 };

@@ -24,6 +24,11 @@
     --red:    #ff7070;
     --blue:   #7eb8e8;
 
+    /* Posters: one value, so a badge clipped by its container lines up with the
+       art no matter which surface it is on. Tiny thumbs get the smaller one. */
+    --poster-radius:    6px;
+    --poster-radius-sm: 4px;
+
     --radius:    12px;
     --radius-sm: 7px;
     --radius-xs: 4px;
@@ -422,14 +427,6 @@
   }
   .top-rank.top3 { color: var(--accent); }
 
-  .top-cover {
-    width: 81px;
-    height: 117px;
-    object-fit: cover;
-    border-radius: 6px;
-    background: var(--surface3);
-    flex-shrink: 0;
-  }
 
   .top-info { flex: 1; min-width: 0; }
   .top-title {
@@ -482,7 +479,7 @@
   @media (max-width: 400px) {
     .top-row   { gap: 9px; }
     .top-rank  { width: 28px; font-size: 17px; }
-    .top-cover { width: 72px; height: 104px; }
+    .poster-md { width: 72px; height: 104px; }
   }
 
   /* CONTROLS */
@@ -554,14 +551,6 @@
   .catalog-item:last-child { border-bottom: none; }
   .catalog-item:hover { background: var(--surface2); }
 
-  .catalog-cover {
-    width: 28px;
-    height: 40px;
-    object-fit: cover;
-    border-radius: 3px;
-    background: var(--surface3);
-    flex-shrink: 0;
-  }
 
   .catalog-info { flex: 1; min-width: 0; }
   .catalog-title {
@@ -734,14 +723,6 @@
     user-select: none;
   }
 
-  .series-cover {
-    width: 108px;
-    height: 156px;
-    object-fit: cover;
-    border-radius: 6px;
-    background: var(--surface3);
-    flex-shrink: 0;
-  }
 
   .series-info { flex: 1; min-width: 0; }
 
@@ -801,14 +782,6 @@
   .season-row:last-child { border-bottom: none; }
   .season-row:hover { background: var(--surface2); }
 
-  .season-cover {
-    width: 90px;
-    height: 129px;
-    object-fit: cover;
-    border-radius: 5px;
-    background: var(--surface3);
-    flex-shrink: 0;
-  }
 
   .season-info { flex: 1; min-width: 0; }
 
@@ -842,14 +815,6 @@
   }
   .standalone-row:hover { border-color: var(--border-hi); }
 
-  .standalone-cover {
-    width: 108px;
-    height: 156px;
-    object-fit: cover;
-    border-radius: 6px;
-    background: var(--surface3);
-    flex-shrink: 0;
-  }
 
   .standalone-info { flex: 1; min-width: 0; }
   .standalone-title {
@@ -1400,14 +1365,6 @@
   .related-item:last-child { border-bottom: none; }
   .related-item:hover { background: var(--surface2); border-radius: var(--radius-xs); padding-left: 4px; }
 
-  .related-thumb {
-    width: 38px;
-    height: 54px;
-    object-fit: cover;
-    border-radius: 4px;
-    background: var(--surface3);
-    flex-shrink: 0;
-  }
 
   .related-info { flex: 1; min-width: 0; }
   .related-name {
@@ -1529,12 +1486,6 @@
     box-shadow: 0 6px 18px rgba(0,0,0,0.45);
   }
 
-  .studio-card-cover {
-    width: 100%;
-    aspect-ratio: 2 / 3;
-    object-fit: cover;
-    display: block;
-  }
 
   .studio-card-score {
     transition: opacity 0.15s;
@@ -1615,6 +1566,7 @@
   .sequel-body .sequel-actions { margin-top: auto; }
 
   .sequel-cover-link {
+    overflow: hidden;
     display: block;
     position: relative;
     width: 110px;
@@ -1628,6 +1580,67 @@
 
   /* Unaired sequel: dim the top of the poster and label it. Hovering the
      poster clears both so the art can be seen. */
+  /* ── POSTERS ──
+     One system decides what a poster is: the box, the corner, and the unaired
+     treatment. Surfaces pick a size and nothing else. The container clips, so
+     the badge and the date never carry a radius of their own — that mismatch
+     is what used to leave a sliver at the corners. */
+  .poster {
+    position: relative;
+    flex-shrink: 0;
+    line-height: 0;
+    overflow: hidden;
+    border-radius: var(--poster-radius);
+    background: var(--surface3);
+  }
+  .poster-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .poster:hover .cover-status,
+  .poster:hover .poster-date { opacity: 0; }
+
+  .poster-xs { width: 28px;  height: 40px;  border-radius: var(--poster-radius-sm); }
+  .poster-sm { width: 38px;  height: 54px;  border-radius: var(--poster-radius-sm); }
+  .poster-md { width: 81px;  height: 117px; }
+  .poster-lg { width: 90px;  height: 129px; }
+  .poster-xl { width: 108px; height: 156px; }
+  /* fills its column and keeps the poster ratio — grids and the info card */
+  .poster-fluid { width: 100%; aspect-ratio: 2 / 3; }
+
+  /* «Очікується» at 14px cannot fit a row thumbnail, so the same treatment
+     scales with the box rather than being skipped there. */
+  .poster-xs .cover-status, .poster-sm .cover-status,
+  .poster-md .cover-status, .poster-lg .cover-status {
+    font-size: 9px; padding: 5px 2px 0; letter-spacing: 0;
+  }
+  .poster-xs .poster-date, .poster-sm .poster-date,
+  .poster-md .poster-date, .poster-lg .poster-date {
+    font-size: 8.5px; padding: 0 2px 4px; letter-spacing: 0;
+  }
+  /* Only one of the two labels is ever shown; the size picks it. */
+  .status-short { display: none; }
+
+  /* Thumbnails: same gradient in the same place, but the short word — the full
+     one needs 49px on a line and gets 24 here, which lands at 3px type. The
+     date goes too; there is no room for a second line under it. */
+  .poster-xs .cover-status,
+  .poster-sm .cover-status {
+    padding: 3px 2px 0;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  .poster-xs .status-full,
+  .poster-sm .status-full { display: none; }
+  .poster-xs .status-short,
+  .poster-sm .status-short { display: inline; }
+  .poster-xs .cover-status { font-size: 7px; }
+  .poster-sm .cover-status { font-size: 9px; }
+  .poster-xs .poster-date,
+  .poster-sm .poster-date { display: none; }
+
   .cover-status {
     position: absolute;
     top: 0;
@@ -1640,7 +1653,6 @@
       rgba(10,8,6,0.92) 32%,
       rgba(10,8,6,0.64) 64%,
       rgba(10,8,6,0) 100%);
-    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     color: var(--accent);
     font-size: 14px;
     font-weight: 700;
@@ -1669,7 +1681,6 @@
       rgba(10,8,6,0.92) 32%,
       rgba(10,8,6,0.64) 64%,
       rgba(10,8,6,0) 100%);
-    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
     color: var(--accent);
     font-size: 11px;
     font-weight: 700;
@@ -1684,14 +1695,6 @@
   .studio-card-art:hover .cover-status,
   .studio-card-art:hover .poster-date { opacity: 0; }
 
-  .sequel-cover {
-    width: 100%;
-    aspect-ratio: 2 / 3;
-    object-fit: cover;
-    border-radius: var(--radius-sm);
-    background: var(--surface3);
-    display: block;
-  }
 
   .sequel-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 
