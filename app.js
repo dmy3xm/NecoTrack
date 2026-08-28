@@ -211,11 +211,59 @@ function ukPersist() {
 const UK_MISS_TTL = 14 * 24 * 60 * 60 * 1000;
 const ukStale = v => v === null || (typeof v === 'number' && Date.now() - v > UK_MISS_TTL);
 
+// A synopsis is ~1.8 KB in UTF-8 — a few hundred would crowd the names out of
+// localStorage, and they are only wanted while a panel is open. So: memory only,
+// and stashed from the name lookup's own response, which already carries them.
+const descCache = new Map();
+let descLang = 'uk';
+
+// Hikka's synopses are markdown. Links are flattened to their label rather than
+// made clickable: the targets include a streaming site and a torrent tracker,
+// which have no business being tappable from inside the app. esc() runs first,
+// so the <strong> below is the only markup that can reach the page.
+function ukText(str) {
+  return esc(str)
+    // one level of nested parens, so a target like ..._(disambiguation) is
+    // consumed whole instead of leaving a stray bracket behind
+    .replace(/\[([^\]]*)\]\((?:[^()\s]|\([^()\s]*\))*\)/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/[​-‍﻿]/g, '')   // stray zero-width characters
+    .trim();
+}
+
+const genreCache = new Map();
+
+function ukStashDesc(idMal, j) {
+  if (!j) return;
+  const ua = (j.synopsis_ua || '').trim();
+  if (ua) descCache.set(idMal, ua);
+  // Genres arrive with name_ua already filled in, so they cost nothing extra.
+  const g = (j.genres || []).map(x => x && x.name_ua).filter(Boolean);
+  if (g.length) genreCache.set(idMal, g);
+}
+
+// A title known from an earlier session has its name in localStorage and no
+// description in memory, so the panel has to ask once. Cheap: one call, and it
+// refreshes the name at the same time.
+async function ukDescription(idMal) {
+  if (descCache.has(idMal)) return descCache.get(idMal);
+  try {
+    const r = await fetch(UK_PROXY('https://api.hikka.io/integrations/mal/anime/' + idMal));
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (j.title_ua) { ukCache.set(idMal, j.title_ua); ukPersist(); }
+    ukStashDesc(idMal, j);
+    return descCache.get(idMal) || null;   // genres land in genreCache alongside
+  } catch(e) { return null; }
+}
+
 async function ukLookup(idMal) {
   ukPending.add(idMal);
   try {
     const r = await fetch(UK_PROXY('https://api.hikka.io/integrations/mal/anime/' + idMal));
-    const uk = r.ok ? ((await r.json()).title_ua || null) : null;
+    const j = r.ok ? await r.json() : null;
+    const uk = j ? (j.title_ua || null) : null;
+    ukStashDesc(idMal, j);          // free: it came in the same response
     ukCache.set(idMal, uk || Date.now());
     return !!uk;
   } catch(e) {
@@ -234,6 +282,10 @@ async function resolveUk(medias, repaint) {
     .filter(id => id && !ukPending.has(id)
       && (!ukCache.has(id) || ukStale(ukCache.get(id)))))];
   if (!want.length) return;
+  // Claim them synchronously. Two paints can race here — switching tab and
+  // setting the year both repaint — and without this the second builds the same
+  // list before the first has marked anything, doubling the requests.
+  want.forEach(id => ukPending.add(id));
   let found = 0;
   const queue = want.map(id => () => ukLookup(id).then(ok => { if (ok) found++; }));
   while (queue.length) await Promise.all(queue.splice(0, 5).map(f => f()));
@@ -1197,7 +1249,7 @@ async function openInfoModal(mediaId) {
             relations {
               edges {
                 relationType(version: 2)
-                node { id type title { romaji english } coverImage { medium } }
+                node { id idMal type title { romaji english } coverImage { medium } }
               }
             }
           }
@@ -1247,7 +1299,11 @@ function renderInfoModal(media) {
   const animeRelations = (media.relations?.edges || []).filter(e => e.node.type === 'ANIME');
   const entry = allEntries.find(e => e.media.id === media.id);
 
-  const genres = (media.genres || []).map(g => `<span class="genre-chip">${g}</span>`).join('');
+  // Ukrainian genre names when Hikka has answered for this title, AniList's
+  // English otherwise — the counts differ between the two, so it is one or the
+  // other rather than a merge.
+  const genreNames = (media.idMal && genreCache.get(media.idMal)) || media.genres || [];
+  const genres = genreNames.map(g => `<span class="genre-chip">${esc(g)}</span>`).join('');
   const statusBadge = media.status
     ? `<span class="status-badge status-${media.status}">${T.mediaStatus[media.status] || media.status}</span>`
     : '';
@@ -1325,17 +1381,28 @@ function renderInfoModal(media) {
       </div>
     </div>` : '';
 
+  // Both languages are rendered with one hidden, so switching never re-renders
+  // the panel — a re-render would tear down a playing trailer.
   const descId = 'info-desc-' + media.id;
-  const descHtml = media.description
-    ? `<div class="info-desc" id="${descId}">${media.description}</div>
-       <button class="info-desc-toggle" onclick="toggleInfoDesc('${descId}', this)">${T.showMore}</button>`
+  const descUa = (media.idMal && descCache.get(media.idMal)) || '';
+  const descEn = media.description || '';
+  const uaFirst = !!descUa && (descLang === 'uk' || !descEn);
+  const descHtml = (descUa || descEn)
+    ? `<div class="info-desc" id="${descId}">
+         ${descUa ? `<div class="desc-ua"${uaFirst ? '' : ' hidden'}>${ukText(descUa)}</div>` : ''}
+         ${descEn ? `<div class="desc-en"${uaFirst ? ' hidden' : ''}>${descEn}</div>` : ''}
+       </div>
+       <div class="info-desc-actions" id="${descId}-actions">
+         <button class="info-desc-toggle" onclick="toggleInfoDesc('${descId}', this)">${T.showMore}</button>
+         ${descUa && descEn ? `<button class="info-desc-toggle desc-lang" onclick="toggleDescLang('${descId}', this)">${uaFirst ? T.descEn : T.descUa}</button>` : ''}
+       </div>`
     : '';
 
   let relatedHtml = '';
   if (animeRelations.length) {
     const items = animeRelations.map(edge => {
       const rMedia = edge.node;
-      const rTitle = rMedia.title.english || rMedia.title.romaji;
+      const rTitle = getTitle(rMedia);
       const inList = listIds.has(rMedia.id);
       const badge = inList ? `<span class="related-in-list-badge">${T.inList}</span>` : '';
       return `
@@ -1390,6 +1457,35 @@ function renderInfoModal(media) {
   resolveUk([media], () => {
     if ($('info-modal').classList.contains('open')) renderInfoModal(media);
   });
+
+  // A title cached on an earlier day has its name but no description, so ask
+  // once. Patched into place rather than re-rendered: the panel is already on
+  // screen, and rebuilding it would kill a trailer that may be playing.
+  // Median is five relations, but One Piece has 61. Resolve the small cases so a
+  // typical panel reads fully Ukrainian; leave the outliers to whatever browsing
+  // has already cached, so no single card fires a stampede.
+  if (animeRelations.length && animeRelations.length <= 5) {
+    resolveUk(animeRelations.map(e => e.node), () => {
+      if ($('info-modal').classList.contains('open')) renderInfoModal(media);
+    });
+  }
+
+  if (media.idMal && !descCache.has(media.idMal)) {
+    ukDescription(media.idMal).then(ua => {
+      const box = $('info-desc-' + media.id);
+      if (!ua || !box || box.querySelector('.desc-ua')) return;
+      if (!$('info-modal').classList.contains('open')) return;
+      box.insertAdjacentHTML('afterbegin', `<div class="desc-ua">${ukText(ua)}</div>`);
+      const en = box.querySelector('.desc-en');
+      if (en && descLang === 'uk') en.hidden = true;
+      else box.querySelector('.desc-ua').hidden = true;
+      const actions = $('info-desc-' + media.id + '-actions');
+      if (en && actions && !actions.querySelector('.desc-lang')) {
+        actions.insertAdjacentHTML('beforeend',
+          `<button class="info-desc-toggle desc-lang" onclick="toggleDescLang('info-desc-${media.id}', this)">${descLang === 'uk' ? T.descEn : T.descUa}</button>`);
+      }
+    });
+  }
 }
 
 // controls=0 keeps YouTube's chrome out of the card; a click still pauses.
@@ -1441,6 +1537,18 @@ function stopTrailer() {
 function closeInfoModal() {
   stopTrailer();
   $('info-modal').classList.remove('open');
+}
+
+// Flip which language shows, and remember it for the rest of the session.
+function toggleDescLang(id, btn) {
+  const box = $(id);
+  if (!box) return;
+  const ua = box.querySelector('.desc-ua'), en = box.querySelector('.desc-en');
+  if (!ua || !en) return;
+  descLang = ua.hidden ? 'uk' : 'en';
+  ua.hidden = descLang !== 'uk';
+  en.hidden = descLang === 'uk';
+  btn.textContent = descLang === 'uk' ? T.descEn : T.descUa;
 }
 
 function toggleInfoDesc(id, btn) {

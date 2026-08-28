@@ -25,6 +25,7 @@ const T = {
   seasons: 'entries', plusEpisode: '+1 episode', loading: 'Завантаження…',
   // info modal
   related: 'Пов\'язані', inList: 'У списку', showMore: 'Показати більше', showLess: 'Згорнути',
+  descEn: 'Англійською', descUa: 'Українською',
   anilistLink: 'Відкрити на AniList ↗', addPrompt: 'Додати до списку:', edit: 'Редагувати', addedToList: 'Додано',
   communityScore: 'Спільнота', myScore: 'Моя оцінка',
   // sequel suggestion

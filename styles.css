@@ -1362,6 +1362,12 @@
     overflow-wrap: anywhere;
   }
 
+  /* Hikka's synopsis is plain text with real line breaks; AniList's is HTML.
+     pre-line keeps the breaks without letting stray spacing through. */
+  .desc-ua { white-space: pre-line; }
+
+  .info-desc-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
   .info-desc-toggle {
     background: none;
     border: none;
