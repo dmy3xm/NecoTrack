@@ -183,10 +183,12 @@ function buildSeriesGroups(entries) {
 // ── UKRAINIAN TITLES, LIVE FROM HIKKA ──
 // hikka.io publishes an open API with no key, but sends Access-Control-Allow-Origin
 // only to its own site — a plain fetch from here fails outright, GET included. So
-// calls go through a public proxy. No token exists to leak; the cost is that a
-// third party sees the lookups and can disappear, taking this with it.
+// calls go through our own Cloudflare Worker, which forwards to api.hikka.io and
+// nothing else. Public proxies were tried first and two of them changed terms or
+// died within two days; this one is ours, so nobody else's policy can break it.
 // AniList hands us idMal, so the join is an integer, never a string compare.
-const UK_PROXY = u => 'https://corsproxy.io/?url=' + encodeURIComponent(u);
+const UK_PROXY = u =>
+  'https://necotrack-hikka.dmy3x-m.workers.dev/?url=' + encodeURIComponent(u);
 const UK_STORE = 'uk_titles_v1';
 const ukCache = new Map(JSON.parse(localStorage.getItem(UK_STORE) || '[]'));
 const ukPending = new Set();
@@ -239,12 +241,16 @@ async function resolveUk(medias, repaint) {
   if (found) repaint();
 }
 
+// About four results fit the dropdown before it scrolls, and it rarely gets
+// scrolled — so fetching a dozen is a page nobody reads. Six leaves headroom.
+const SEARCH_SHOW = 6;
+
 // AniList stores no Ukrainian titles at all, so a Cyrillic query can only be
 // answered by Hikka. It hands back mal_id, AniList takes those as a filter, and
 // what comes out is ordinary AniList media — so the dropdown, the info card and
 // "+ Add" all keep working untouched.
 async function searchViaHikka(query) {
-  const r = await fetch(UK_PROXY('https://api.hikka.io/anime?page=1&size=12'), {
+  const r = await fetch(UK_PROXY(`https://api.hikka.io/anime?page=1&size=${SEARCH_SHOW + 3}`), {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query })
   });
@@ -260,7 +266,7 @@ async function searchViaHikka(query) {
   ukPersist();
   const data = await gql(`
     query($ids: [Int]) {
-      Page(perPage: 12) {
+      Page(perPage: ${SEARCH_SHOW + 3}) {
         media(idMal_in: $ids, type: ANIME) {
           id idMal title { romaji english } coverImage { medium }
           episodes seasonYear format
@@ -270,7 +276,9 @@ async function searchViaHikka(query) {
   `, { ids });
   // AniList returns its own order; Hikka's was by relevance, so put it back
   const rank = new Map(ids.map((id, i) => [id, i]));
-  return (data.Page.media || []).sort((a, b) => rank.get(a.idMal) - rank.get(b.idMal));
+  return (data.Page.media || [])
+    .sort((a, b) => rank.get(a.idMal) - rank.get(b.idMal))
+    .slice(0, SEARCH_SHOW);
 }
 
 function getTitle(media) {
@@ -351,6 +359,29 @@ let catalogTimer = null;
 let lastCatalogQuery = '';
 let lastCatalogResults = [];
 
+// Typing one title fires a query per keystroke and backspacing retreads them, so
+// search is the one path that repeats. Memory only: results are bulky, they go
+// stale, and the Ukrainian names inside them already persist via ukCache.
+const SEARCH_TTL = 10 * 60 * 1000;
+const SEARCH_MAX = 60;
+const searchCache = new Map();
+
+function searchCached(q) {
+  const hit = searchCache.get(q);
+  if (!hit) return null;
+  if (Date.now() - hit.at > SEARCH_TTL) { searchCache.delete(q); return null; }
+  return hit.results;
+}
+
+function searchStore(q, results) {
+  // Empty results are not cached: a miss is often the proxy failing rather than
+  // the catalogue lacking the title, and that should be retried, not remembered.
+  if (!results.length) return;
+  searchCache.set(q, { at: Date.now(), results });
+  // Map keeps insertion order, so the first key is always the oldest
+  while (searchCache.size > SEARCH_MAX) searchCache.delete(searchCache.keys().next().value);
+}
+
 function onSearchInput(val) {
   if (currentTab !== 'TOP') renderList();
   const v = val.trim();
@@ -365,6 +396,10 @@ async function searchCatalog(query) {
   lastCatalogResults = [];
   const drop = $('catalog-results');
   drop.style.display = 'block';
+
+  const cached = searchCached(query);
+  if (cached) { lastCatalogResults = cached; paintCatalog(); return; }
+
   drop.innerHTML = `<div class="catalog-loading">${T.searching}</div>`;
   try {
     // Hikka first, for every query — it prefix-matches properly where AniList's
@@ -381,7 +416,7 @@ async function searchCatalog(query) {
     if (!lastCatalogResults.length) {
       const data = await gql(`
         query($search: String) {
-          Page(perPage: 8) {
+          Page(perPage: ${SEARCH_SHOW}) {
             media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
               id
               idMal
@@ -396,6 +431,7 @@ async function searchCatalog(query) {
       `, { search: query });
       lastCatalogResults = data.Page.media;
     }
+    searchStore(query, lastCatalogResults);
     paintCatalog();
   } catch(e) {
     drop.innerHTML = `<div class="catalog-loading">${T.errPrefix}${e.message}</div>`;
