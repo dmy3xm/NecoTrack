@@ -6,6 +6,8 @@
 ### Features:
 - Seasons of the same anime in your list are combined into one group.
 - No social features available.
+- Anime titles and descriptions in ukranian from hikka.
+- Top anime from AniList filtered by years.
 ***
 > [!IMPORTANT]
 > The interface is only in Ukrainian.
