@@ -1244,6 +1244,7 @@ async function deleteEntry() {
 // ── INFO MODAL ──
 async function openInfoModal(mediaId) {
   const overlay = $('info-modal');
+  dubOpen = false;   // every panel opens folded
   const body = $('info-body');
   $('info-title').textContent = '—';
   $('info-original').textContent = '';
@@ -1372,7 +1373,11 @@ function renderInfoModal(media) {
         </button>`).join('')}</div>
     </div>` : '';
 
-  const anilistLink = `<a class="info-link" href="https://anilist.co/anime/${media.id}" target="_blank" rel="noopener">${T.anilistLink}</a>`;
+  const outLinks = `<div class="link-row">
+      <a class="info-link" href="https://anilist.co/anime/${media.id}" target="_blank" rel="noopener">${T.anilistLink}</a>
+      <a class="info-link" href="${tolokaUrl(media)}" target="_blank" rel="noopener"
+         title="${esc(tolokaQuery(media))}">${T.tolokaLink}</a>
+    </div>`;
 
   const notesHtml = entry?.notes?.trim()
     ? `<div class="field-group info-notes">
@@ -1449,7 +1454,8 @@ function renderInfoModal(media) {
   $('info-body').innerHTML = `
     <div class="info-col-left">
       ${posterHTML(media, 'fluid', { cls: 'info-cover-lg', img: ` srcset="${coverSet}" sizes="(min-width: 650px) 220px, 130px"` })}
-      ${anilistLink}
+      ${outLinks}
+      <div class="dub-slot dub-landscape" id="dub-left"></div>
       ${notesHtml}
     </div>
     <div class="info-col-right">
@@ -1463,12 +1469,19 @@ function renderInfoModal(media) {
       ${studioHtml}
       ${controlsHtml}
       ${descHtml}
+      <div class="dub-slot dub-portrait" id="dub-portrait"></div>
       ${relatedHtml}
       ${trailerHtml}
     </div>
   `;
 
   studios.forEach(s => hydrateStudioLogo($('info-body').querySelector(`.studio-chip[data-sid="${s.id}"]`), s));
+
+  // Paints straight from cache when it is already there, so a revisit shows
+  // the dub without a flash of nothing.
+  dubPaint.id = media.id;
+  dubPaint();
+  dubResolve(media.id);
 
   // Editing is only offered for titles already on the list.
   const editBtn = $('info-edit-btn');
@@ -1822,6 +1835,239 @@ function renderStudioModal() {
 
 function closeStudioModal() {
   $('studio-modal').classList.remove('open');
+}
+
+// ── TOLOKA SEARCH ──
+// Romaji rather than the Ukrainian name, because the two Ukrainian sources
+// disagree — Hikka calls Frieren «Проводжальниця Фрірен» and AniHub «Фрірен, що
+// проводжає в останню путь» — and searching the wrong one finds nothing. Toloka
+// release names carry the romaji anyway.
+//
+// The season suffix and AniList's punctuation both have to go: "Shingeki no
+// Kyojin Season 3 Part 2" and "SPY×FAMILY" each return zero, while "Shingeki no
+// Kyojin" and "SPY FAMILY" return everything. \p{L}, never \w — \w is ASCII-only
+// and would empty the query for a title written in anything else.
+function tolokaQuery(media) {
+  return (media.title.romaji || media.title.english || '')
+    .replace(/\b\d+(st|nd|rd|th)\s+season\b/gi, ' ')
+    .replace(/\b(season|part|cour|final)\b\s*\d*/gi, ' ')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const tolokaUrl = media =>
+  'https://toloka.to/tracker.php?nm=' + encodeURIComponent(tolokaQuery(media));
+
+// ── UKRAINIAN DUB, FROM ANIHUB ──
+// AniHub carries what neither AniList nor Hikka does: whether a title has a
+// Ukrainian dub and which teams made it. It keys on anilist_id, so the join is
+// an integer rather than a title match — the thing that sank uk-titles. It
+// sends no CORS headers either, so it rides the same worker as Hikka.
+const DUB_STORE = 'necotrack_dub_v1';
+const DUB_TEAMS_STORE = 'necotrack_dub_teams_v1';
+const DUB_TTL = 14 * 24 * 60 * 60 * 1000;
+const DUB_SHOWN = 6;            // before the landscape block collapses
+const DUB_PAGE = 50;            // /studios caps page_size at 50
+
+const dubCache = new Map(JSON.parse(localStorage.getItem(DUB_STORE) || '[]'));
+let dubTeams = null;            // name -> { n, links }, the whole directory
+let dubOpen = false;            // portrait fold state, reset per panel
+
+function dubPersist() {
+  try { localStorage.setItem(DUB_STORE, JSON.stringify([...dubCache])); } catch(e) {}
+}
+
+// AniHub splits one team's credits across several records: Glass Moon's own
+// site and Telegram are gwean-maslinka, and "Рідний голос" exists twice
+// differing only in capitalisation. Merged here because upstream will not be.
+const DUB_ALIASES = {
+  'gwean & maslinka': 'Glass Moon', 'gwean': 'Glass Moon', 'maslinka': 'Glass Moon',
+  'unimay media': 'Unimay', 'inariokami': 'Inari',
+  'переозвучення didko studio': 'Didko Studio', 'ufdub (бонусні епізоди)': 'UFDUB',
+};
+const dubCanonical = name => DUB_ALIASES[name.trim().toLowerCase()] || name.trim();
+
+// A site says who a team is and Telegram is where they post. Everything else
+// AniHub carries is excluded on purpose — YouTube, TikTok and Instagram are
+// feeds, Discord and Facebook want an account, Twitter is somewhere nobody
+// asked to be sent. An allowlist, so a new network stays unlinked until judged.
+const DUB_LINKS = ['website', 'telegram'];
+const dubLink = name => {
+  const links = (dubTeams && dubTeams[name] && dubTeams[name].links) || {};
+  return DUB_LINKS.map(k => links[k]).find(Boolean) || '';
+};
+
+const dubSize = name => (dubTeams && dubTeams[name] && dubTeams[name].n) || 0;
+
+// No team is flagged as the main one and the array is in no useful order, so
+// the biggest catalogue leads. A proxy, not a fact — but it puts the outfit you
+// have heard of first instead of a one-title team.
+function dubRank(teams) {
+  const merged = new Map();
+  for (const [rawName, logo] of teams) {
+    const name = dubCanonical(rawName);
+    const prev = merged.get(name.toLowerCase());
+    if (!prev || (!prev[1] && logo)) merged.set(name.toLowerCase(), [name, logo]);
+  }
+  return [...merged.values()].sort((a, b) => dubSize(b[0]) - dubSize(a[0]));
+}
+
+// The team directory is ~393 entries over 8 requests and carries the sizes and
+// links the per-title call omits. Fetched once and kept, so a panel costs one
+// request rather than nine.
+let dubTeamsInFlight = null;
+async function dubLoadTeams() {
+  if (dubTeams) return dubTeams;
+  // The panel re-renders as Ukrainian names and descriptions arrive, and each
+  // render asks again — without this the directory is fetched eight pages at a
+  // time, several times over, straight into AniHub's 40/min ceiling.
+  if (dubTeamsInFlight) return dubTeamsInFlight;
+  dubTeamsInFlight = dubLoadTeamsOnce().finally(() => { dubTeamsInFlight = null; });
+  return dubTeamsInFlight;
+}
+
+async function dubLoadTeamsOnce() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(DUB_TEAMS_STORE) || 'null');
+    if (saved && Date.now() - saved.at < DUB_TTL) return (dubTeams = saved.teams);
+  } catch(e) {}
+  const teams = {};
+  try {
+    for (let page = 1; page <= 12; page++) {
+      const r = await fetch(UK_PROXY('https://api.anihub.in.ua/studios?page=' + page + '&page_size=' + DUB_PAGE));
+      if (!r.ok) return null;
+      const j = await r.json();
+      for (const t of j.results || []) teams[t.name] = { n: t.anime_count || 0, links: t.primary_links || {} };
+      if (!j.next) break;
+    }
+  } catch(e) { return null; }
+  dubTeams = teams;
+  try { localStorage.setItem(DUB_TEAMS_STORE, JSON.stringify({ at: Date.now(), teams })); } catch(e) {}
+  return dubTeams;
+}
+
+// Only real answers are cached. A transport failure — the worker not yet
+// allowing api.anihub.in.ua, say — must not be remembered for a fortnight.
+async function dubLookup(id) {
+  const hit = dubCache.get(id);
+  if (hit && Date.now() - hit.at < DUB_TTL) return hit;
+  try {
+    const r = await fetch(UK_PROXY('https://api.anihub.in.ua/anime?anilist_id=' + id));
+    if (!r.ok) return null;
+    const j = await r.json();
+    // An unknown parameter is ignored silently and returns all 24000 rows, so a
+    // total of exactly one is what proves the filter was actually applied.
+    if (j.total !== 1 || !j.items || !j.items.length) return null;
+    const it = j.items[0];
+    const rec = {
+      dub: !!it.has_ukrainian_dub,
+      teams: (it.dubbing_studios || []).map(t => [t.name, t.logo_url || '']),
+      at: Date.now(),
+    };
+    dubCache.set(id, rec);
+    dubPersist();
+    return rec;
+  } catch(e) { return null; }
+}
+
+const dubMono = name => {
+  const w = name.split(/[\s.·&]+/).filter(Boolean);
+  return (w.length > 1 ? w[0][0] + w[1][0] : (w[0] || '?').slice(0, 2)).toUpperCase();
+};
+
+// A quarter of teams ship no logo and the hosts are third-party, so the
+// monogram covers both the missing and the broken. Wired in JS rather than an
+// inline onerror: the markup that would carry contains double quotes, which end
+// the attribute early and leak the rest as visible text.
+function dubChip(pair) {
+  const name = pair[0], logo = pair[1];
+  const mono = '<span class="dub-mono">' + esc(dubMono(name)) + '</span>';
+  const art = logo
+    ? '<img src="' + esc(logo) + '" class="dub-logo" alt="" loading="lazy" data-mono="' + esc(dubMono(name)) + '">'
+    : mono;
+  const href = dubLink(name);
+  const size = dubSize(name);
+  const tip = esc(name) + (size ? ' — ' + size : '');
+  return href
+    ? '<a class="dub-chip" href="' + esc(href) + '" target="_blank" rel="noopener" title="' + tip + '">' + art + '<span>' + esc(name) + '</span></a>'
+    : '<span class="dub-chip is-plain" title="' + tip + '">' + art + '<span>' + esc(name) + '</span></span>';
+}
+
+function dubWireFallbacks(root) {
+  root.querySelectorAll('.dub-logo').forEach(img => {
+    img.onerror = () => {
+      const span = document.createElement('span');
+      span.className = 'dub-mono';
+      span.textContent = img.dataset.mono;
+      img.replaceWith(span);
+    };
+  });
+}
+
+const dubNote = (text, hint) =>
+  '<span class="dub-note"' + (hint ? ' title="' + hint + '"' : '') + '>' + text + '</span>';
+
+// The label and the badge both say "Ukrainian dub", so they never appear
+// together: where a label heads the block the teams below it imply the fact,
+// and where the badge heads it the badge is the label — and the control.
+function dubLabelled(rec) {
+  const teams = dubRank(rec.teams);
+  const shown = dubOpen ? teams : teams.slice(0, DUB_SHOWN);
+  const rest = teams.length - shown.length;
+  const merged = rec.teams.length - teams.length;
+  return '<div class="field-group">' +
+    '<div class="field-label">' + T.dubTitle + dubNote(T.dubCount(teams.length)) +
+      (merged ? dubNote(T.dubMerged(merged), T.dubMergedHint) : '') + '</div>' +
+    '<div class="dub-row">' + shown.map(dubChip).join('') +
+      (rest > 0 ? '<button class="dub-more" onclick="dubToggle()">' + T.dubMore(rest) + '</button>' : '') +
+    '</div></div>';
+}
+
+function dubToggleable(rec) {
+  const teams = dubRank(rec.teams);
+  const merged = rec.teams.length - teams.length;
+  return '<div class="field-group">' +
+    '<button class="dub-badge dub-toggle" aria-expanded="' + dubOpen + '" onclick="dubToggle()">' +
+      T.dubYes + ' · ' + teams.length + '<span class="dub-caret">' + (dubOpen ? '▴' : '▾') + '</span></button>' +
+    (dubOpen
+      ? '<div class="dub-row">' + teams.map(dubChip).join('') +
+        (merged ? dubNote(T.dubMerged(merged), T.dubMergedHint) : '') + '</div>'
+      : '') +
+    '</div>';
+}
+
+// Both slots are always in the DOM and CSS decides which one shows, so nothing
+// here measures the viewport. Filling them in place rather than re-rendering
+// the panel is deliberate: a re-render tears down a playing trailer, and the
+// fold toggle would do exactly that on every press.
+function dubPaint() {
+  const left = $('dub-left'), portrait = $('dub-portrait');
+  if (!left || !portrait) return;
+  const rec = dubCache.get(dubPaint.id);
+  if (!rec) { left.innerHTML = ''; portrait.innerHTML = ''; return; }
+  const none = '<div class="field-group"><span class="dub-badge none">' + T.dubNone + '</span></div>';
+  const empty = !rec.dub || !rec.teams.length;
+  left.innerHTML = empty ? none : dubLabelled(rec);
+  portrait.innerHTML = empty ? none : dubToggleable(rec);
+  dubWireFallbacks(left);
+  dubWireFallbacks(portrait);
+}
+
+function dubToggle() {
+  dubOpen = !dubOpen;
+  dubPaint();
+}
+
+// Called once per panel. The directory is only worth fetching for a title that
+// actually has a dub, so it is asked for second.
+async function dubResolve(mediaId) {
+  dubPaint.id = mediaId;
+  const rec = await dubLookup(mediaId);
+  if (!rec || dubPaint.id !== mediaId) return;
+  if (rec.dub && rec.teams.length) await dubLoadTeams();
+  if (dubPaint.id !== mediaId || !$('info-modal').classList.contains('open')) return;
+  dubPaint();
 }
 
 // ── SEQUEL SUGGESTION ──

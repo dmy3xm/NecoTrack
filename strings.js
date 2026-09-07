@@ -26,7 +26,8 @@ const T = {
   // info modal
   related: 'Пов\'язані', inList: 'У списку', showMore: 'Показати більше', showLess: 'Згорнути',
   descEn: 'Англійською', descUa: 'Українською',
-  anilistLink: 'Відкрити на AniList ↗', addPrompt: 'Додати до списку:', edit: 'Редагувати', addedToList: 'Додано',
+  anilistLink: 'Відкрити на AniList ↗',
+  tolokaLink: 'Шукати на Толоці ↗', addPrompt: 'Додати до списку:', edit: 'Редагувати', addedToList: 'Додано',
   communityScore: 'Спільнота', myScore: 'Моя оцінка',
   // sequel suggestion
   sequelTitle: 'Є продовження!',
@@ -70,6 +71,14 @@ const T = {
   // dates
   locale: 'uk-UA',
   dateUnknown: 'Дата невідома',
+  // ukrainian dub (AniHub)
+  dubTitle: 'Українська озвучка',
+  dubYes: 'Є українська озвучка',
+  dubNone: 'Української озвучки немає',
+  dubMore: n => `ще ${n}`,
+  dubCount: n => `${n} ${n === 1 ? 'команда' : 'команд'}`,
+  dubMerged: n => `злито ${n}`,
+  dubMergedHint: 'AniHub тримає одну команду під кількома записами',
   // studio
   studio: 'Студія', studios: 'Студії',
   studioWorks: 'Аніме студії',

@@ -1527,6 +1527,106 @@
 
   .studio-more { align-self: center; }
 
+  /* Two outbound links in a 220px column, so they wrap rather than overflow. */
+  .link-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  /* UKRAINIAN DUB */
+  /* Two slots are always in the markup and the width picks one: portrait shows
+     the folded badge after the description, landscape the open block in the
+     left column. 649.98/650 rather than 649/650 — a fractional viewport lands
+     between the two and would match neither. */
+  @media (min-width: 650px)    { .dub-portrait  { display: none; } }
+  @media (max-width: 649.98px) { .dub-landscape { display: none; } }
+
+  .dub-row { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+
+  .dub-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px 4px 4px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .dub-chip:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .dub-chip.is-plain { cursor: default; }
+  .dub-chip.is-plain:hover { border-color: var(--border); background: var(--surface2); }
+
+  /* AniHub's team logos are square avatars, not the wide wordmarks the
+     production studios have — so a round tile, never a wide slot. */
+  .dub-logo, .dub-mono {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--surface3);
+    flex-shrink: 0;
+  }
+  .dub-logo { object-fit: cover; display: block; }
+  .dub-mono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-family: 'Nunito', sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  /* The badge states the fact and is the control, so it has to survive being
+     pressed — .field-group is a flex column, and a lone button in one stretches
+     the full width and stops reading as a chip. */
+  .dub-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    align-self: flex-start;
+    background: rgba(110,232,154,0.12);
+    border: 1px solid var(--green);
+    border-radius: 20px;
+    color: var(--green);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 11px;
+  }
+  .dub-badge.none {
+    background: var(--surface2);
+    border-color: var(--border);
+    color: var(--text-muted);
+  }
+  .dub-toggle { cursor: pointer; gap: 7px; }
+  .dub-caret { font-size: 9px; opacity: 0.8; }
+
+  .dub-more {
+    background: none;
+    border: 1px dashed var(--border-hi);
+    border-radius: 20px;
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 5px 12px;
+    cursor: pointer;
+  }
+  .dub-more:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* The count and the merge note are subordinate to whatever heads the block,
+     so they shed the label's caps and tracking. */
+  .dub-note {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: 0;
+    margin-left: 7px;
+  }
+
   /* SEQUEL SUGGESTION MODAL */
   /* Below the other overlays so the info modal can open on top of it. */
   #sequel-modal { z-index: 190; }
