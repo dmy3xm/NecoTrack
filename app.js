@@ -150,11 +150,23 @@ function buildSeriesGroups(entries) {
     if (a !== b) parent[b] = a;
   }
 
+  // A sequel chain often runs through a title the user never added — Tensura
+  // goes S1 → OVA → S2, and without the OVA nothing links S1 to S2. When one
+  // listed title's SEQUEL and another's PREQUEL are the same missing title, it is
+  // one chain with a gap. Direction matters: two series that merely share a
+  // sequel (a crossover) both point SEQUEL at it, and stay apart.
+  const gapAfter = {}, gapBefore = {};
+
   for (const e of entries) {
     const id = e.media.id;
     for (const edge of e.media.relations.edges) {
-      if (edge.node.type !== 'ANIME' || !byId[edge.node.id]) continue;
+      if (edge.node.type !== 'ANIME') continue;
       const rt = edge.relationType;
+      if (!byId[edge.node.id]) {
+        const side = rt === 'SEQUEL' ? gapAfter : rt === 'PREQUEL' ? gapBefore : null;
+        if (side) (side[edge.node.id] = side[edge.node.id] || []).push(id);
+        continue;
+      }
       if (rt === 'SEQUEL' || rt === 'PREQUEL') {
         union(id, edge.node.id);
       } else if (rt === 'PARENT' || rt === 'SIDE_STORY') {
@@ -166,6 +178,10 @@ function buildSeriesGroups(entries) {
         }
       }
     }
+  }
+
+  for (const gap in gapAfter) {
+    for (const b of gapBefore[gap] || []) for (const a of gapAfter[gap]) union(a, b);
   }
 
   const groups = {};
