@@ -387,12 +387,13 @@ function unairedDate(m) {
 // treatment. A surface picks a size and passes nothing else — which is why the
 // badge is guaranteed to be there, and why the radii cannot drift apart again.
 // opts: cls (extra classes), attrs (on the box), img (on the <img>), extra
-// (markup layered over the art, e.g. an in-list badge).
+// (markup layered over the art, e.g. an in-list badge), eager (load now — a lazy
+// image inside a hidden container never loads at all).
 function posterHTML(m, size, opts) {
   opts = opts || {};
   const src = (m.coverImage && (m.coverImage.large || m.coverImage.medium)) || '';
   return `<div class="poster poster-${size}${opts.cls ? ' ' + opts.cls : ''}"${opts.attrs || ''}>
-    <img src="${src}" class="poster-img" loading="lazy" alt=""${opts.img || ''}>
+    <img src="${src}" class="poster-img" loading="${opts.eager ? 'eager' : 'lazy'}" alt=""${opts.img || ''}>
     ${unairedBadge(m)}${unairedDate(m)}${opts.extra || ''}
   </div>`;
 }
@@ -2195,6 +2196,184 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
+// ── EXPORT ──
+function toggleUserMenu() {
+  document.querySelector('.user-menu-wrap').classList.toggle('open');
+}
+
+function closeUserMenu() {
+  document.querySelector('.user-menu-wrap').classList.remove('open');
+}
+
+const EXPORT_ORDER = ['CURRENT', 'REPEATING', 'COMPLETED', 'PLANNING', 'PAUSED', 'DROPPED'];
+
+function exportLine(e) {
+  const m = e.media, shown = getTitle(m);
+  const alt = [...new Set([m.title.english, m.title.romaji])].filter(t => t && t !== shown);
+  const year = m.seasonYear || (m.startDate && m.startDate.year);
+  const prog = e.progress || 0;
+  const parts = [shown + (alt.length ? ` (${alt.join(' / ')})` : '')];
+  const kind = [m.format && (T.format[m.format] || m.format), year].filter(Boolean).join(', ');
+  if (kind) parts.push(kind);
+  if (prog || m.episodes) parts.push(`${prog}${m.episodes ? '/' + m.episodes : ''} ${T.epShort}`);
+  if (e.score > 0) parts.push(`${T.exportScore} ${e.score}`);
+  let line = '- ' + parts.join(' — ');
+  const notes = (e.notes || '').replace(/\s+/g, ' ').trim();
+  if (notes) line += `\n  ${T.fldNotes}: ${notes}`;
+  return line;
+}
+
+// Only the statuses that actually occur, in tab order; anything AniList adds later
+// goes on the end rather than vanishing from the export.
+const exportStatuses = () => {
+  const have = new Set(allEntries.map(e => e.status));
+  return [...EXPORT_ORDER.filter(s => have.has(s)), ...[...have].filter(s => !EXPORT_ORDER.includes(s))];
+};
+const exportLabel = s => s === 'REPEATING' ? T.exportRepeating : (T.status[s] || s);
+
+// Held as what is left out, so every list starts ticked — including one that
+// first appears after the modal was last used.
+const exportSkip = new Set();
+
+function listToText() {
+  const picked = exportStatuses().filter(s => !exportSkip.has(s));
+  const date = new Date().toLocaleDateString(T.locale);
+  const total = allEntries.filter(e => picked.includes(e.status)).length;
+  const out = [T.exportHeader(currentUser ? currentUser.name : '', date, total)];
+  for (const s of picked) {
+    const rows = allEntries.filter(e => e.status === s)
+      .sort((a, b) => getTitle(a.media).localeCompare(getTitle(b.media)));
+    out.push('', `== ${exportLabel(s)} (${rows.length}) ==`, ...rows.map(exportLine));
+  }
+  return out.join('\n') + '\n';
+}
+
+function paintExport() {
+  $('export-picks').innerHTML = exportStatuses().map(s => {
+    const on = !exportSkip.has(s), n = allEntries.filter(e => e.status === s).length;
+    return `<button class="chip${on ? ' on' : ''}" onclick="toggleExportStatus('${s}')">${on ? '✓ ' : ''}${esc(exportLabel(s))} · ${n}</button>`;
+  }).join('');
+  $('export-text').value = listToText();
+}
+
+function toggleExportStatus(s) {
+  if (!exportSkip.delete(s)) exportSkip.add(s);
+  paintExport();
+}
+
+// Ukrainian names load per tab as tabs are painted, so a tab never opened would
+// export in English. The modal shows what is cached at once and fills in the
+// rest when the lookup for the whole list lands.
+function openExportModal() {
+  closeUserMenu();
+  paintExport();
+  $('export-text').scrollTop = 0;
+  $('export-modal').classList.add('open');
+  resolveUk(allEntries.map(e => e.media), () => { renderList(); paintExport(); });
+}
+
+function closeExportModal() { $('export-modal').classList.remove('open'); }
+
+const exportStamp = () => `necotrack-${currentUser ? currentUser.name : 'list'}-${new Date().toISOString().slice(0, 10)}`;
+
+function printCardHTML(e) {
+  const m = e.media, eps = m.episodes, prog = e.progress || 0;
+  const year = m.seasonYear || (m.startDate && m.startDate.year);
+  const meta = [m.format && (T.format[m.format] || m.format), year].filter(Boolean);
+  if (e.status !== 'COMPLETED' && (prog || eps)) meta.push(`${prog}${eps ? '/' + eps : ''} ${T.epShort}`);
+  const score = e.score > 0 ? `<div class="ps-score">★ ${e.score}</div>` : '';
+  return `<div class="ps-card">
+    ${posterHTML(m, 'fluid', { eager: true, extra: score })}
+    <div class="ps-title">${esc(getTitle(m))}</div>
+    <div class="ps-meta">${esc(meta.join(' · '))}</div>
+  </div>`;
+}
+
+function printSheetHTML() {
+  const picked = exportStatuses().filter(s => !exportSkip.has(s));
+  const entries = allEntries.filter(e => picked.includes(e.status));
+  const scored = entries.filter(e => e.score > 0);
+  const avg = scored.length ? (scored.reduce((s, e) => s + e.score, 0) / scored.length).toFixed(1) : '—';
+  const eps = entries.reduce((s, e) => s + (e.progress || 0), 0);
+  let html = `<div class="ps-head">
+    <img src="logo.png" class="ps-logo" alt="">
+    <div class="ps-head-text">
+      <div class="ps-name">${esc(T.printTitle(currentUser ? currentUser.name : ''))}</div>
+      <div class="ps-date">${esc(new Date().toLocaleDateString(T.locale, { day: 'numeric', month: 'long', year: 'numeric' }))}</div>
+    </div>
+    <div class="ps-stats">
+      <div class="stat-chip"><strong>${entries.length}</strong> ${T.statAnime}</div>
+      <div class="stat-chip"><strong>${avg}</strong> ${T.statAvg}</div>
+      <div class="stat-chip"><strong>${eps}</strong> ${T.statEpisodes}</div>
+    </div>
+  </div>`;
+  for (const s of picked) {
+    const rows = entries.filter(e => e.status === s)
+      .sort((a, b) => getTitle(a.media).localeCompare(getTitle(b.media)));
+    html += `<section class="ps-section">
+      <div class="ps-sec-head"><span class="status-badge status-${s}">${esc(exportLabel(s))}</span><span class="ps-count">${rows.length}</span></div>
+      <div class="ps-grid">${rows.map(printCardHTML).join('')}</div>
+    </section>`;
+  }
+  return html;
+}
+
+function exportPdf() {
+  $('ps-page').innerHTML = printSheetHTML();
+  $('print-sheet').scrollTop = 0;
+  $('print-sheet').classList.add('open');
+}
+
+function closePdfPreview() {
+  $('print-sheet').classList.remove('open');
+  $('ps-page').innerHTML = '';
+}
+
+// No PDF library: the browser's own "Save as PDF" keeps text sharp and the file
+// small, and drawing the posters onto a canvas would need CORS that AniList's CDN
+// may not send. Print waits for every poster, or a slow one would print blank.
+async function savePdf() {
+  const btn = $('pdf-save-btn');
+  const loads = [...$('ps-page').querySelectorAll('img')].filter(i => !i.complete)
+    .map(i => new Promise(r => { i.onload = i.onerror = r; }));
+  btn.disabled = true;
+  if (loads.length) showToast(T.exportPdfPreparing);
+  await Promise.race([Promise.all(loads), new Promise(r => setTimeout(r, 20000))]);
+  await document.fonts.ready;
+  btn.disabled = false;
+  // Chrome and Safari name the PDF after the page title.
+  const title = document.title;
+  document.title = exportStamp();
+  window.addEventListener('afterprint', () => { document.title = title; }, { once: true });
+  window.print();
+}
+
+// The text is already in the textarea, so copying never waits on anything and
+// keeps the click's clipboard permission. execCommand covers http:// and older
+// Safari, where navigator.clipboard is missing or refuses.
+async function copyListText() {
+  const ta = $('export-text');
+  try {
+    await navigator.clipboard.writeText(ta.value);
+  } catch(e) {
+    ta.select();
+    if (!document.execCommand('copy')) { showToast(T.exportFailed); return; }
+    ta.setSelectionRange(0, 0);
+  }
+  showToast(T.exportCopied);
+}
+
+function downloadListText() {
+  const url = URL.createObjectURL(new Blob([$('export-text').value], { type: 'text/plain;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = exportStamp() + '.txt';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 // ── STARTUP ──
 (function() {
   applyI18n();
@@ -2288,6 +2467,7 @@ $('info-modal').addEventListener('click', e => { if (e.target === e.currentTarge
 $('sequel-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSequelModal(); });
 $('top-find-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeTopFind(); });
 $('studio-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeStudioModal(); });
+$('export-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeExportModal(); });
 
 // A horizontal strip doesn't take the vertical wheel, so map it across.
 $('top-years').addEventListener('scroll', syncYearArrows, { passive: true });
@@ -2301,4 +2481,5 @@ $('top-years').addEventListener('wheel', e => {
 }, { passive: false });
 document.addEventListener('click', e => {
   if (!e.target.closest('.search-wrap')) $('catalog-results').style.display = 'none';
+  if (!e.target.closest('.user-menu-wrap')) closeUserMenu();
 });

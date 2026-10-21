@@ -11,7 +11,7 @@ const T = {
   authLogin: 'Увійти',
   enterToken: 'Please enter a token',
   // header / tabs / controls
-  refresh: 'Оновити', logout: 'Вийти', tabAll: 'Усі', home: 'На головну',
+  logout: 'Вийти', tabAll: 'Усі', home: 'На головну',
   searchPlaceholder: 'Пошук у списку…',
   sortTitle: 'За назвою', sortScore: 'За оцінкою', sortProgress: 'За прогресом',
   sortUpdated: 'За датою', sortYear: 'За роком', groupOn: 'Групи', groupOff: 'Список',
@@ -85,6 +85,21 @@ const T = {
   studioAnilist: 'Студія на AniList ↗',
   studioCount: n => `${n} тайтлів`,
   studioNone: 'Тайтлів не знайдено',
+  // plain-text export (avatar menu)
+  exportTitle: 'Експорт списку',
+  exportDesc: 'Список простим текстом — для себе, друга чи ШІ',
+  exportCopy: 'Копіювати',
+  exportDownload: '.txt',
+  exportPdf: 'PDF',
+  exportPdfPreparing: 'Готую PDF…',
+  pdfPreview: 'Попередній перегляд',
+  pdfSave: 'Зберегти PDF',
+  printTitle: name => `Аніме-список ${name}`,
+  exportCopied: 'Список скопійовано ✓',
+  exportFailed: 'Не вдалося скопіювати',
+  exportHeader: (name, date, n) => `NecoTrack · список аніме ${name} · ${date} · ${n} аніме`,
+  exportScore: 'оцінка',
+  exportRepeating: 'Передивляюсь',   // not in `status`: that map also drives the add-to-list buttons
   // enum → label maps (used by both HTML data-i18n and JS)
   status:      { CURRENT:'Дивлюсь', COMPLETED:'Переглянуто', PLANNING:'Планую', PAUSED:'Призупинено', DROPPED:'Закинуто' },
   relation:    { SEQUEL:'Сіквел', PREQUEL:'Приквел', SPIN_OFF:'Спін-оф', SIDE_STORY:'Побічна історія',
