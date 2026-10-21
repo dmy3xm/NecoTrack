@@ -63,15 +63,36 @@ function parseTokenFromHash() {
 }
 
 // ── GRAPHQL ──
+// When AniList switches its API off it answers 403 without CORS headers, and the
+// browser reports that as the same bare "Failed to fetch" as having no network.
+// A no-cors request tells them apart: it resolves on any HTTP answer, even a
+// refusal, and rejects only when nothing answers at all.
+async function fetchFailReason() {
+  if (!navigator.onLine) return T.errOffline;
+  try {
+    await fetch('https://graphql.anilist.co', { mode: 'no-cors', cache: 'no-store' });
+    return T.errAnilistDown;
+  } catch(e) {
+    return T.errOffline;
+  }
+}
+
 async function gql(query, variables = {}) {
-  const res = await fetch('https://graphql.anilist.co', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({ query, variables })
-  });
+  let res;
+  try {
+    res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ query, variables })
+    });
+  } catch(e) {
+    throw new Error(await fetchFailReason());
+  }
+  // checked before parsing: an outage page is HTML, and res.json() would throw a SyntaxError instead
+  if (res.status >= 500) throw new Error(T.errAnilistDown);
   const data = await res.json();
   if (data.errors) throw new Error(data.errors[0].message);
   return data.data;
@@ -2188,9 +2209,13 @@ async function initApp() {
     }
     await loadList();
   } catch(e) {
-    $('list-container').innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><div>${T.errPrefix}${e.message}</div></div>`;
+    $('list-container').innerHTML = loadErrorHTML(T.errPrefix + esc(e.message), 'initApp()');
   }
 }
+
+// The header has no refresh button, so a failed load has to offer the retry itself.
+const loadErrorHTML = (msg, retry) => `<div class="empty-state"><div class="icon">⚠️</div><div>${msg}</div>
+  <button class="btn-cancel load-retry" onclick="${retry}">${T.retry}</button></div>`;
 
 async function loadList() {
   $('list-container').innerHTML = `<div class="loading"><div class="spinner"></div><div>${T.loading}</div></div>`;
@@ -2198,7 +2223,7 @@ async function loadList() {
     allEntries = await fetchList(currentUser.id);
     renderList();
   } catch(e) {
-    $('list-container').innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><div>${T.loadFailed}${e.message}</div></div>`;
+    $('list-container').innerHTML = loadErrorHTML(T.loadFailed + esc(e.message), 'loadList()');
   }
 }
 

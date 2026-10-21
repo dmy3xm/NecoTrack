@@ -65,7 +65,10 @@ const T = {
   catalogResults: 'AniList catalog results', catalogInList: 'In list', catalogAdd: '+ Add',
   // toasts / messages (parameterized ones are functions)
   added: 'Added to planning', saved: 'Saved ✓', deleted: 'Видалено зі списку',
-  completed: 'Completed! 🎉', loadFailed: 'Failed to load: ', errPrefix: 'Error: ',
+  completed: 'Completed! 🎉', loadFailed: 'Не вдалося завантажити: ', errPrefix: 'Помилка: ',
+  errAnilistDown: 'AniList лежить — це збій на їхньому боці, не в NecoTrack. Спробуй трохи пізніше.',
+  errOffline: 'Немає з\'єднання з інтернетом.',
+  retry: 'Спробувати ще',
   confirmDelete: title => `Видалити «${title}» зі списку? Цю дію не можна скасувати.`,
   toastProgress: (p, eps) => `${p}${eps ? '/'+eps : ''} episodes`,
   // dates
