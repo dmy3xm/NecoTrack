@@ -1702,7 +1702,10 @@
   }
   .sequel-body .sequel-actions { margin-top: auto; }
 
-  .sequel-cover-link {
+  /* .poster.… because .poster-fluid's width: 100% comes later in the file and
+     would win at equal specificity — on a phone that stretched the cover across
+     the modal and pushed the title and buttons off its right edge. */
+  .poster.sequel-cover-link {
     overflow: hidden;
     display: block;
     position: relative;
@@ -1910,7 +1913,7 @@
 
   @media (min-width: 650px) {
     .sequel-cards { flex-direction: row; align-items: flex-start; }
-    .sequel-cover-link { width: 130px; }
+    .poster.sequel-cover-link { width: 130px; }
     #sequel-modal .modal.multi { max-width: 700px; }
   }
 
