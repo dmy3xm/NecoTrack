@@ -1257,6 +1257,13 @@
   .empty-img { width: 96px; height: 96px; object-fit: contain; opacity: 0.5; }
   .empty-state > div:not(.icon) { max-width: 360px; line-height: 1.5; }
   .load-retry { margin-top: 8px; }
+  .empty-state > .icon { font-size: 30px; line-height: 1; }
+  .empty-state > .load-down {
+    font-family: 'Nunito', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
 
   /* TOAST */
   #toast {

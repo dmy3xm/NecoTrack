@@ -67,13 +67,16 @@ function parseTokenFromHash() {
 // browser reports that as the same bare "Failed to fetch" as having no network.
 // A no-cors request tells them apart: it resolves on any HTTP answer, even a
 // refusal, and rejects only when nothing answers at all.
-async function fetchFailReason() {
-  if (!navigator.onLine) return T.errOffline;
+// .down lets the full-screen error show the outage on its own, without a prefix.
+const anilistDown = () => Object.assign(new Error(T.errAnilistDown), { down: true });
+
+async function fetchFailError() {
+  if (!navigator.onLine) return new Error(T.errOffline);
   try {
     await fetch('https://graphql.anilist.co', { mode: 'no-cors', cache: 'no-store' });
-    return T.errAnilistDown;
+    return anilistDown();
   } catch(e) {
-    return T.errOffline;
+    return new Error(T.errOffline);
   }
 }
 
@@ -89,10 +92,10 @@ async function gql(query, variables = {}) {
       body: JSON.stringify({ query, variables })
     });
   } catch(e) {
-    throw new Error(await fetchFailReason());
+    throw await fetchFailError();
   }
   // checked before parsing: an outage page is HTML, and res.json() would throw a SyntaxError instead
-  if (res.status >= 500) throw new Error(T.errAnilistDown);
+  if (res.status >= 500) throw anilistDown();
   const data = await res.json();
   if (data.errors) throw new Error(data.errors[0].message);
   return data.data;
@@ -2209,12 +2212,13 @@ async function initApp() {
     }
     await loadList();
   } catch(e) {
-    $('list-container').innerHTML = loadErrorHTML(T.errPrefix + esc(e.message), 'initApp()');
+    $('list-container').innerHTML = loadErrorHTML(e, T.errPrefix, 'initApp()');
   }
 }
 
 // The header has no refresh button, so a failed load has to offer the retry itself.
-const loadErrorHTML = (msg, retry) => `<div class="empty-state"><div class="icon">⚠️</div><div>${msg}</div>
+const loadErrorHTML = (e, prefix, retry) => `<div class="empty-state"><div class="icon">⚠️</div>
+  ${e.down ? `<div class="load-down">${esc(e.message)}</div>` : `<div>${prefix}${esc(e.message)}</div>`}
   <button class="btn-cancel load-retry" onclick="${retry}">${T.retry}</button></div>`;
 
 async function loadList() {
@@ -2223,7 +2227,7 @@ async function loadList() {
     allEntries = await fetchList(currentUser.id);
     renderList();
   } catch(e) {
-    $('list-container').innerHTML = loadErrorHTML(T.loadFailed + esc(e.message), 'loadList()');
+    $('list-container').innerHTML = loadErrorHTML(e, T.loadFailed, 'loadList()');
   }
 }
 
