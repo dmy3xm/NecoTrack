@@ -2314,7 +2314,11 @@ function openExportModal() {
   paintExport();
   $('export-text').scrollTop = 0;
   $('export-modal').classList.add('open');
-  resolveUk(allEntries.map(e => e.media), () => { renderList(); paintExport(); });
+  resolveUk(allEntries.map(e => e.media), () => {
+    renderList();
+    paintExport();
+    if ($('print-sheet').classList.contains('open')) $('ps-page').innerHTML = printSheetHTML();
+  });
 }
 
 function closeExportModal() { $('export-modal').classList.remove('open'); }
