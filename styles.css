@@ -1326,6 +1326,86 @@
     margin-top: 2px;
   }
 
+  /* Looks exactly like the plain score box it replaced. It is a button only so
+     touch can tap it, so the browser's own button look, tap flash and click
+     focus ring are all switched off. Only touch gets a caret: a mouse opens it
+     by hovering, and there tapping is the only way in. */
+  .score-main {
+    font-family: inherit;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .score-main:focus:not(:focus-visible) { outline: none; }
+  .score-caret { display: none; }
+  /* the exact opposite of canHover in app.js, so every device gets one of the two */
+  @media not all and (hover: hover) and (pointer: fine) {
+    .score-caret {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 9px;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .score-main[aria-expanded="true"] .score-caret { transform: rotate(180deg); }
+  }
+
+  /* Fixed and outside the modal, so the modal's scrolling can't clip it. It
+     grows out of the corner nearest the box: from the top when it opens below,
+     from the bottom when there was only room above. Closed, it stays laid out
+     (opacity, not display) so its size can be measured before it is placed. */
+  .score-pop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 2000;
+    width: 270px;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+    transform-origin: top left;
+    pointer-events: none;
+    transition: opacity 0.16s ease-out, transform 0.16s ease-out;
+  }
+  .score-pop.above { transform: translateY(4px) scale(0.97); transform-origin: bottom left; }
+  .score-pop.open { opacity: 1; transform: none; pointer-events: auto; }
+  /* Touch opens the sources in the panel instead. It grows from 0fr to 1fr,
+     which animates to the content's real height — max-height would need a
+     guessed number and ease against the wrong size. */
+  .score-inline {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 0.2s ease, opacity 0.2s ease;
+  }
+  .score-inline.open { grid-template-rows: 1fr; opacity: 1; }
+  .score-inline-inner { overflow: hidden; min-height: 0; }
+  .score-inline-inner > :first-child { margin-top: 4px; }
+  .score-inline-inner > :last-child { margin-bottom: 12px; }
+  @media (prefers-reduced-motion: reduce) {
+    .score-pop, .score-inline, .score-caret { transition: none; }
+  }
+  .score-table {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    gap: 4px 14px;
+    align-items: baseline;
+    font-size: 13px;
+  }
+  .score-src { color: var(--text-dim); }
+  .score-val { color: var(--yellow); font-weight: 700; }
+  .score-votes { color: var(--text-muted); font-size: 12px; }
+  .score-dist-label {
+    margin: 12px 0 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
   .info-link {
     display: inline-block;
     font-size: 12px;

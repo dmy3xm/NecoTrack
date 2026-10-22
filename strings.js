@@ -29,6 +29,7 @@ const T = {
   anilistLink: 'Відкрити на AniList ↗',
   tolokaLink: 'Шукати на Толоці ↗', addPrompt: 'Додати до списку:', edit: 'Редагувати', addedToList: 'Додано',
   communityScore: 'Спільнота', myScore: 'Моя оцінка',
+  scoreDistAniList: 'Розподіл оцінок на AniList',
   // sequel suggestion
   sequelTitle: 'Є продовження!',
   sequelDesc: title => `Ви завершили «${title}». Додати продовження до планів?`,
@@ -41,8 +42,10 @@ const T = {
   topAllYears: 'Всі роки',
   topAllTime: 'за весь час',
   topHeading: label => `Топ ${label}`,
-  topSearchPh: 'Пошук на AniList…',
+  topSearchPh: 'Знайти в рейтингу…',
   topMore: 'Показати ще',
+  topSource: { hikka: 'оцінка MAL, дані Hikka', anilist: 'оцінка AniList' },
+  topVotes: n => `${T.votes(n)} на MAL`,
   topSearching: 'Шукаю…',
   topOtherYear: y => y ? `не з цього року · ${y}` : 'рік невідомий',
   topFindTitle: 'Немає в цьому рейтингу',
@@ -70,6 +73,11 @@ const T = {
   errOffline: 'Немає з\'єднання з інтернетом.',
   retry: 'Спробувати ще',
   confirmDelete: title => `Видалити «${title}» зі списку? Цю дію не можна скасувати.`,
+  votes: n => {
+    const m10 = n % 10, m100 = n % 100;
+    const w = m10 === 1 && m100 !== 11 ? 'оцінка' : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'оцінки' : 'оцінок';
+    return `${Number(n).toLocaleString('uk-UA')} ${w}`;
+  },
   toastProgress: (p, eps) => `${p}${eps ? '/'+eps : ''} episodes`,
   // dates
   locale: 'uk-UA',

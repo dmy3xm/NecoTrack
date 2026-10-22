@@ -12,7 +12,7 @@ let modalStatus = '';
 let modalStatusTouched = false;
 let mediaCache = {};
 let topYear = 'all';
-let topCache = {};   // year -> { rows, page, hasNext }
+let topCache = {};   // year -> { rows, page, hasNext, source }
 
 // Formats that count as a main series; anything else is side content.
 const MAIN_FORMATS = ['TV', 'TV_SHORT'];
@@ -274,11 +274,21 @@ function ukText(str) {
 }
 
 const genreCache = new Map();
+// MAL's score (Hikka keeps a copy) and Hikka's own, each with its vote count.
+// A score drifts, so like descriptions these live in memory only.
+const scoreCache = new Map();
 
-function ukStashDesc(idMal, j) {
-  if (!j) return;
+// Every Hikka answer is kept through here, whichever request brought it — the
+// per-title lookup, the info panel, search or the Top all return the same record.
+// The name goes to localStorage, or the moment it came up missing; description,
+// genres and scores ride along in memory.
+function hikkaStash(idMal, j) {
+  if (!idMal || !j) return;
+  ukCache.set(idMal, j.title_ua || Date.now());
+  ukPersist();
   const ua = (j.synopsis_ua || '').trim();
   if (ua) descCache.set(idMal, ua);
+  scoreCache.set(idMal, { mal: j.score || 0, malN: j.scored_by || 0, hk: j.native_score || 0, hkN: j.native_scored_by || 0 });
   // Genres arrive with name_ua already filled in, so they cost nothing extra.
   const g = (j.genres || []).map(x => x && x.name_ua).filter(Boolean);
   if (g.length) genreCache.set(idMal, g);
@@ -288,15 +298,16 @@ function ukStashDesc(idMal, j) {
 // description in memory, so the panel has to ask once. Cheap: one call, and it
 // refreshes the name at the same time.
 async function ukDescription(idMal) {
-  if (descCache.has(idMal)) return descCache.get(idMal);
+  if (descCache.has(idMal) && scoreCache.has(idMal)) return descCache.get(idMal);
   try {
     const r = await fetch(UK_PROXY('https://api.hikka.io/integrations/mal/anime/' + idMal));
-    if (!r.ok) return null;
+    // A failed answer is remembered as "no scores" for the session, so the
+    // panel shows AniList's instead of waiting on Hikka every time it opens.
+    if (!r.ok) { scoreCache.set(idMal, null); return null; }
     const j = await r.json();
-    if (j.title_ua) { ukCache.set(idMal, j.title_ua); ukPersist(); }
-    ukStashDesc(idMal, j);
+    hikkaStash(idMal, j);
     return descCache.get(idMal) || null;   // genres land in genreCache alongside
-  } catch(e) { return null; }
+  } catch(e) { scoreCache.set(idMal, null); return null; }
 }
 
 async function ukLookup(idMal) {
@@ -304,10 +315,9 @@ async function ukLookup(idMal) {
   try {
     const r = await fetch(UK_PROXY('https://api.hikka.io/integrations/mal/anime/' + idMal));
     const j = r.ok ? await r.json() : null;
-    const uk = j ? (j.title_ua || null) : null;
-    ukStashDesc(idMal, j);          // free: it came in the same response
-    ukCache.set(idMal, uk || Date.now());
-    return !!uk;
+    if (j) hikkaStash(idMal, j);
+    else ukCache.set(idMal, Date.now());   // no answer counts as a miss, rechecked later
+    return !!(j && j.title_ua);
   } catch(e) {
     ukCache.set(idMal, Date.now());
     return false;
@@ -353,11 +363,9 @@ async function searchViaHikka(query) {
   for (const a of (await r.json()).list || []) {
     if (!a.mal_id) continue;
     ids.push(a.mal_id);
-    // the Ukrainian name arrived with the search, so it costs nothing to keep
-    ukCache.set(a.mal_id, a.title_ua || Date.now());
+    hikkaStash(a.mal_id, a);   // the whole record came with the search, so keep it
   }
   if (!ids.length) return [];
-  ukPersist();
   const data = await gql(`
     query($ids: [Int]) {
       Page(perPage: ${SEARCH_SHOW + 3}) {
@@ -878,19 +886,94 @@ function applyTopChrome() {
   inp.classList.toggle('global-search', isTop);
 }
 
-async function fetchTop(year, page) {
+const TOP_MEDIA_FIELDS = `id idMal title { romaji english } coverImage { medium large }
+  averageScore format episodes seasonYear status startDate { year month day }`;
+
+async function fetchTopAniList(year, page) {
   const data = await gql(`
     query($page: Int, $year: Int) {
       Page(page: $page, perPage: 50) {
         pageInfo { hasNextPage }
-        media(type: ANIME, sort: SCORE_DESC, seasonYear: $year, averageScore_greater: 1) {
-          id idMal title { romaji english } coverImage { medium large }
-          averageScore format episodes seasonYear status startDate { year month day }
-        }
+        media(type: ANIME, sort: SCORE_DESC, seasonYear: $year, averageScore_greater: 1) { ${TOP_MEDIA_FIELDS} }
       }
     }
   `, { page, year: year === 'all' ? undefined : year });
   return { rows: data.Page.media, hasNext: data.Page.pageInfo.hasNextPage };
+}
+
+// Ranked by MAL's score, which Hikka carries: several times AniList's voters and
+// two decimals instead of one. Hikka orders and AniList supplies the titles,
+// joined on MAL id exactly as the Cyrillic search does, so the rows stay ordinary
+// AniList media and the info card, "+ Add" and the in-list badge keep working.
+// score [1, 10] drops unscored titles on Hikka's side, so its page count is real.
+async function fetchTopHikka(year, page) {
+  const r = await fetch(UK_PROXY(`https://api.hikka.io/anime?page=${page}&size=50`), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(Object.assign({ sort: ['score:desc'], score: [1, 10] },
+      year === 'all' ? {} : { years: [Number(year), Number(year)] }))
+  });
+  if (!r.ok) throw new Error('Hikka ' + r.status);
+  const j = await r.json();
+  // The rank is taken before AniList filters anything out. AniList misses the odd
+  // title — it has Attack on Titan: The Last Attack without its MAL id — and
+  // numbering what is left put every later row one place off MAL's own ranking.
+  (j.list || []).forEach((a, i) => { a.rank = (page - 1) * 50 + i + 1; });
+  const list = (j.list || []).filter(a => a.mal_id);
+  // The whole record arrives with the ranking, so the rows never have to look
+  // anything up one by one.
+  for (const a of list) hikkaStash(a.mal_id, a);
+  const hasNext = j.pagination ? page < j.pagination.pages : false;
+  if (!list.length) return { rows: [], hasNext };
+  const data = await gql(`
+    query($ids: [Int]) {
+      Page(perPage: 50) { media(idMal_in: $ids, type: ANIME) { ${TOP_MEDIA_FIELDS} } }
+    }
+  `, { ids: list.map(a => a.mal_id) });
+  const byMal = new Map((data.Page.media || []).map(m => [m.idMal, m]));
+  // A title Hikka knows but AniList doesn't has nothing to open or add, so it is
+  // left out rather than shown as a dead row.
+  const rows = list.filter(a => byMal.has(a.mal_id))
+    .map(a => Object.assign(byMal.get(a.mal_id), { malScore: a.score, malVotes: a.scored_by, topRank: a.rank }));
+  return { rows, hasNext };
+}
+
+const fetchTop = (year, page, source) =>
+  source === 'anilist' ? fetchTopAniList(year, page) : fetchTopHikka(year, page);
+
+// A ranking a day old is still the same ranking, and keeping it saves both
+// services a request every time the tab is opened. One clock covers every year:
+// a clock per year let "all years" show a title at one day's score and its own
+// year at the next day's, so the same title could disagree with itself.
+const TOP_STORE = 'necotrack_top_v1';
+const TOP_TTL = 24 * 60 * 60 * 1000;
+let topClock = 0;   // when the kept ranking was first fetched; 0 = nothing kept
+
+function topLoad() {
+  try {
+    const s = JSON.parse(localStorage.getItem(TOP_STORE) || 'null');
+    return s && s.years && Date.now() - s.at < TOP_TTL ? s : null;
+  } catch(e) { return null; }
+}
+
+// Also drops what this session holds in memory, so a tab left open for days
+// refreshes too, and every year at once.
+function topExpire() {
+  if (topClock && Date.now() - topClock >= TOP_TTL) { topCache = {}; topClock = 0; }
+  if (topClock) return;
+  const s = topLoad();
+  if (!s) return;
+  topClock = s.at;
+  for (const k in s.years) if (!topCache[k]) topCache[k] = s.years[k];
+}
+
+function topSave(key, state) {
+  if (!topClock) topClock = Date.now();
+  try {
+    const s = topLoad();
+    const years = s && s.at === topClock ? s.years : {};
+    years[key] = { rows: state.rows, page: state.page, hasNext: state.hasNext, source: state.source };
+    localStorage.setItem(TOP_STORE, JSON.stringify({ at: topClock, years }));
+  } catch(e) {}
 }
 
 function renderTopYears() {
@@ -919,15 +1002,26 @@ async function renderTop() {
   renderTopYears();
   const container = $('list-container');
   const key = String(topYear);
+  topExpire();
   if (!topCache[key]) {
     container.innerHTML = `<div class="loading"><div class="spinner"></div><div>${T.loading}</div></div>`;
+    // A year's pages all come from one source: paging a Hikka ranking with
+    // AniList pages would splice two different orders together.
+    let source = 'hikka', res;
     try {
-      const { rows, hasNext } = await fetchTop(topYear, 1);
-      topCache[key] = { rows, page: 1, hasNext };
+      res = await fetchTop(topYear, 1, source);
     } catch(e) {
-      container.innerHTML = `<div class="empty-state"><div>${T.errPrefix}${e.message}</div></div>`;
-      return;
+      source = 'anilist';
+      try {
+        res = await fetchTop(topYear, 1, source);
+      } catch(e2) {
+        container.innerHTML = `<div class="empty-state"><div>${T.errPrefix}${esc(e2.message)}</div></div>`;
+        return;
+      }
     }
+    topCache[key] = { rows: res.rows, page: 1, hasNext: res.hasNext, source };
+    // Only Hikka's ranking is kept for the day; a fallback tries Hikka again next time.
+    if (source === 'hikka') topSave(key, topCache[key]);
     if (currentTab !== 'TOP' || String(topYear) !== key) return;   // user moved on while loading
   }
   paintTop();
@@ -937,9 +1031,11 @@ function paintTop() {
   const state = topCache[String(topYear)];
   if (!state) return;
   const listIds = new Set(allEntries.map(e => e.media.id));
-  const rows = state.rows.map((m, i) => `
+  const rows = state.rows.map((m, i) => {
+    const rank = m.topRank || i + 1;
+    return `
     <div class="top-row" data-id="${m.id}" onclick="openInfoModal(${m.id})">
-      <div class="top-rank${i < 3 ? ' top3' : ''}">${i + 1}</div>
+      <div class="top-rank${rank <= 3 ? ' top3' : ''}">${rank}</div>
       ${posterHTML(m, 'md')}
       <div class="top-info">
         <div class="top-title">${getTitle(m)}</div>
@@ -948,8 +1044,13 @@ function paintTop() {
           ? `<div class="top-add"><span class="catalog-add in-list">${T.catalogInList}</span></div>`
           : ''}
       </div>
-      <div class="top-score">★ ${(m.averageScore / 10).toFixed(1)}</div>
-    </div>`).join('');
+      ${m.malScore
+        ? `<div class="top-score" title="${esc(T.topVotes(m.malVotes))}">★ ${m.malScore.toFixed(2)}</div>`
+        : `<div class="top-score">★ ${(m.averageScore / 10).toFixed(1)}</div>`}
+    </div>`;
+  }).join('');
+  $('top-heading').textContent =
+    T.topHeading(topYear === 'all' ? T.topAllTime : topYear) + ' · ' + T.topSource[state.source || 'anilist'];
   const more = state.hasNext
     ? `<button class="top-more" onclick="loadMoreTop()">${T.topMore}</button>` : '';
   $('list-container').innerHTML = `<div class="top-list">${rows}${more}</div>`;
@@ -965,10 +1066,11 @@ async function loadMoreTop() {
   const btn = document.querySelector('.top-more');
   if (btn) { btn.textContent = '…'; btn.disabled = true; }
   try {
-    const { rows, hasNext } = await fetchTop(topYear, state.page + 1);
+    const { rows, hasNext } = await fetchTop(topYear, state.page + 1, state.source);
     state.rows = state.rows.concat(rows);
     state.page += 1;
     state.hasNext = hasNext;
+    if (state.source === 'hikka') topSave(key, state);
     if (currentTab === 'TOP' && String(topYear) === key) paintTop();
   } catch(e) {
     showToast(T.errPrefix + e.message);
@@ -1057,7 +1159,7 @@ async function jumpToTop(mediaId, picked) {
   while (!row && state.hasNext && state.rows.length < limit) {
     let batch;
     try {
-      batch = await fetchTop(topYear, state.page + 1);
+      batch = await fetchTop(topYear, state.page + 1, state.source);
     } catch(e) {
       showToast(T.errPrefix + e.message);
       break;
@@ -1066,6 +1168,7 @@ async function jumpToTop(mediaId, picked) {
     state.rows = state.rows.concat(batch.rows);
     state.page += 1;
     state.hasNext = batch.hasNext;
+    if (state.source === 'hikka') topSave(key, state);
     paintTop();
     row = hit();
   }
@@ -1344,6 +1447,109 @@ function scoreDistGraph(dist) {
   return `<div class="score-dist">${bars}</div>`;
 }
 
+// Two ways in, by input rather than width — the same test the scrollbars use,
+// since a width breakpoint would call an iPad a mouse. A mouse gets a popup on
+// hover; touch has no hover, so a tap slides the sources open in the panel.
+const canHover = matchMedia('(hover: hover) and (pointer: fine)');
+let scorePopId = 0;        // the title the popup is showing; 0 = closed
+let scorePopTimer = null;
+let scoresOpen = false;    // touch: once opened, the sources stay open across panels
+
+// The headline is MAL's: several times AniList's voters, two decimals, and the
+// score the Top ranks by, so a title reads the same in both places. Until Hikka
+// has answered it waits, rather than show AniList's and then jump to another number.
+function scoreMain(media) {
+  const s = media.idMal ? scoreCache.get(media.idMal) : null;
+  if (s && s.mal) return s.mal.toFixed(2);
+  if (media.idMal && !scoreCache.has(media.idMal)) return '…';
+  return media.averageScore ? (media.averageScore / 10).toFixed(1) : null;
+}
+
+// AniList's score is one decimal because that is all it has; padding it to two
+// would claim a precision it doesn't carry.
+function scoreRows(media) {
+  const s = media.idMal ? scoreCache.get(media.idMal) : null;
+  const alN = (media.stats?.scoreDistribution || []).reduce((n, d) => n + d.amount, 0);
+  const rows = [];
+  if (s && s.mal) rows.push(['MAL', s.mal.toFixed(2), s.malN]);
+  if (media.averageScore) rows.push(['AniList', (media.averageScore / 10).toFixed(1), alN]);
+  if (s && s.hk) rows.push(['Hikka', s.hk.toFixed(2), s.hkN]);
+  return rows;
+}
+
+function scoreChipHTML(media) {
+  const main = scoreMain(media);
+  if (!main) return `<span id="info-score-${media.id}"></span>`;
+  const expanded = canHover.matches ? scorePopId === media.id : scoresOpen;
+  return `<button class="info-score score-main" id="info-score-${media.id}" aria-expanded="${expanded}"
+      onclick="toggleScores(${media.id})" onmouseenter="hoverScorePop(${media.id}, true)" onmouseleave="hoverScorePop(${media.id}, false)">
+    <span>★ ${main}<span class="score-caret">▾</span></span><span class="score-label">${T.communityScore}</span>
+  </button>`;
+}
+
+// The graph is AniList's vote spread, so it sits beside AniList's line — under
+// a MAL headline it would read as MAL's.
+function scoreGraphHTML(media) {
+  const graph = scoreDistGraph(media.stats?.scoreDistribution);
+  return graph ? `<div class="score-dist-label">${T.scoreDistAniList}</div>${graph}` : '';
+}
+
+const scoreTableHTML = media => `<div class="score-table">${scoreRows(media).map(([src, v, n]) =>
+  `<span class="score-src">${src}</span><span class="score-val">★ ${v}</span><span class="score-votes">${n ? esc(T.votes(n)) : ''}</span>`).join('')}</div>`;
+
+// Touch: the sources slide open here under the box. Also, on any device: with no
+// headline score there is no box to open anything from (AniList keeps an unaired
+// title's average back while already showing its votes), so the graph stands
+// in the panel on its own then, as it always used to.
+function scoreInlineHTML(media) {
+  const graph = scoreGraphHTML(media), main = scoreMain(media);
+  const touch = main && !canHover.matches;
+  const body = touch ? scoreTableHTML(media) + graph : main ? '' : graph;
+  const open = touch ? scoresOpen : !!body;
+  return `<div class="score-inline${open ? ' open' : ''}" id="info-sources-${media.id}"><div class="score-inline-inner">${body}</div></div>`;
+}
+
+function toggleScores(id) {
+  if (canHover.matches) return;   // a mouse has the popup; a click does nothing
+  scoresOpen = !scoresOpen;
+  const box = $('info-sources-' + id), btn = $('info-score-' + id);
+  if (box) box.classList.toggle('open', scoresOpen);
+  if (btn) btn.setAttribute('aria-expanded', scoresOpen);
+}
+
+// The popup sits outside the modal and is placed against the box: inside, the
+// modal's own scrolling would clip it at the edges. It drops below the box, or
+// above when there's no room, and is kept clear of the screen's sides.
+function openScorePop(id) {
+  const media = mediaCache[id], chip = $('info-score-' + id), pop = $('score-pop');
+  if (!media || !chip || !chip.classList.contains('score-main')) return;
+  scorePopId = id;
+  pop.innerHTML = scoreTableHTML(media) + scoreGraphHTML(media);
+  const r = chip.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight, gap = 6, edge = 8;
+  const below = r.bottom + gap + h <= innerHeight - edge || r.top - gap - h < edge;
+  pop.style.left = Math.max(edge, Math.min(r.left, innerWidth - w - edge)) + 'px';
+  pop.style.top = (below ? r.bottom + gap : r.top - gap - h) + 'px';
+  pop.classList.toggle('above', !below);
+  pop.classList.add('open');
+  chip.setAttribute('aria-expanded', 'true');
+}
+
+function closeScorePop() {
+  clearTimeout(scorePopTimer);
+  const chip = scorePopId && $('info-score-' + scorePopId);
+  if (chip) chip.setAttribute('aria-expanded', 'false');
+  $('score-pop').classList.remove('open');
+  scorePopId = 0;
+}
+
+// A short wait before opening, so a pointer merely passing over doesn't flash
+// it, and before closing, so it can cross the gap into the popup.
+function hoverScorePop(id, over) {
+  if (!canHover.matches) return;   // a tap fires mouseenter too
+  clearTimeout(scorePopTimer);
+  scorePopTimer = over ? setTimeout(() => openScorePop(id), 80) : setTimeout(closeScorePop, 150);
+}
+
 function renderInfoModal(media) {
   // via getTitle so the header follows the Ukrainian name like every other
   // surface — it read the raw fields before, and so never localised at all.
@@ -1375,9 +1581,7 @@ function renderInfoModal(media) {
     ? `<span class="status-badge status-${media.status}">${T.mediaStatus[media.status] || media.status}</span>`
     : '';
 
-  const communityScoreHtml = media.averageScore
-    ? `<span class="info-score"><span>★ ${(media.averageScore / 10).toFixed(1)}</span><span class="score-label">${T.communityScore}</span></span>`
-    : '';
+  const scoreHtml = scoreChipHTML(media);
   const myScoreHtml = (entry && entry.score > 0)
     ? `<span class="info-score"><span>★ ${entry.score}</span><span class="score-label">${T.myScore}</span></span>`
     : '';
@@ -1502,11 +1706,11 @@ function renderInfoModal(media) {
     <div class="info-col-right">
       <div class="info-meta-row">
         ${statusBadge}
-        ${communityScoreHtml}
+        ${scoreHtml}
         ${myScoreHtml}
         ${genres}
       </div>
-      ${scoreDistGraph(media.stats?.scoreDistribution)}
+      ${scoreInlineHTML(media)}
       ${studioHtml}
       ${controlsHtml}
       ${descHtml}
@@ -1549,8 +1753,14 @@ function renderInfoModal(media) {
     });
   }
 
-  if (media.idMal && !descCache.has(media.idMal)) {
+  if (media.idMal && (!descCache.has(media.idMal) || !scoreCache.has(media.idMal))) {
     ukDescription(media.idMal).then(ua => {
+      if ($('info-modal').classList.contains('open')) {
+        const chip = $('info-score-' + media.id), inline = $('info-sources-' + media.id);
+        if (chip) chip.outerHTML = scoreChipHTML(media);
+        if (inline) inline.outerHTML = scoreInlineHTML(media);
+        if (scorePopId === media.id) openScorePop(media.id);   // already open: refill it in place
+      }
       const box = $('info-desc-' + media.id);
       if (!ua || !box || box.querySelector('.desc-ua')) return;
       if (!$('info-modal').classList.contains('open')) return;
@@ -1615,6 +1825,7 @@ function stopTrailer() {
 
 function closeInfoModal() {
   stopTrailer();
+  closeScorePop();
   $('info-modal').classList.remove('open');
 }
 
@@ -2531,4 +2742,12 @@ $('top-years').addEventListener('wheel', e => {
 document.addEventListener('click', e => {
   if (!e.target.closest('.search-wrap')) $('catalog-results').style.display = 'none';
   if (!e.target.closest('.user-menu-wrap')) closeUserMenu();
+});
+// The popup is placed once, against where the box was, so anything that moves
+// the box out from under it closes it instead of leaving it adrift.
+document.addEventListener('scroll', () => { if (scorePopId) closeScorePop(); }, true);
+window.addEventListener('resize', () => { if (scorePopId) closeScorePop(); });
+$('score-pop').addEventListener('mouseenter', () => clearTimeout(scorePopTimer));
+$('score-pop').addEventListener('mouseleave', () => {
+  if (canHover.matches) scorePopTimer = setTimeout(closeScorePop, 150);
 });
